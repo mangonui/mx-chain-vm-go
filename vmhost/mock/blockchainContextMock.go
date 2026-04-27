@@ -2,6 +2,7 @@ package mock
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
@@ -11,8 +12,18 @@ import (
 
 var _ vmhost.BlockchainContext = (*BlockchainContextMock)(nil)
 
+// ErrApplyDRWASyncEnvelopeBytesNotMocked marks accidental use of the generic
+// blockchain context mock in DRWA error-path tests.
+var ErrApplyDRWASyncEnvelopeBytesNotMocked = errors.New("BlockchainContextMock.ApplyDRWASyncEnvelopeBytes not mocked")
+
+// ErrQueryDRWANativeGovernanceNotMocked marks accidental use of native DRWA
+// governance reads without explicit test wiring.
+var ErrQueryDRWANativeGovernanceNotMocked = errors.New("BlockchainContextMock.QueryDRWANativeGovernance not mocked")
+
 // BlockchainContextMock -
 type BlockchainContextMock struct {
+	ApplyDRWASyncEnvelopeBytesCalled func(payload []byte, callerAddress []byte) error
+	QueryDRWANativeGovernanceCalled  func(queryType uint32, key []byte) ([]byte, error)
 }
 
 // InitState -
@@ -211,6 +222,30 @@ func (b *BlockchainContextMock) GetUserAccount(_ []byte) (vmcommon.UserAccountHa
 // ProcessBuiltInFunction -
 func (b *BlockchainContextMock) ProcessBuiltInFunction(_ *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	return &vmcommon.VMOutput{}, nil
+}
+
+// ApplyDRWASyncEnvelopeBytes -
+func (b *BlockchainContextMock) ApplyDRWASyncEnvelopeBytes(payload []byte, callerAddress []byte) error {
+	if b.ApplyDRWASyncEnvelopeBytesCalled != nil {
+		return b.ApplyDRWASyncEnvelopeBytesCalled(payload, callerAddress)
+	}
+
+	return ErrApplyDRWASyncEnvelopeBytesNotMocked
+}
+
+// QueryDRWANativeGovernance -
+func (b *BlockchainContextMock) QueryDRWANativeGovernance(queryType uint32, key []byte) ([]byte, error) {
+	if b.QueryDRWANativeGovernanceCalled != nil {
+		return b.QueryDRWANativeGovernanceCalled(queryType, key)
+	}
+
+	return nil, ErrQueryDRWANativeGovernanceNotMocked
+}
+
+// IsAuthorizedDRWASyncCaller returns false in the generic blockchain context mock
+// unless a higher-level test injects a dedicated blockchain hook stub.
+func (b *BlockchainContextMock) IsAuthorizedDRWASyncCaller(_ []byte) bool {
+	return false
 }
 
 // GetSnapshot -

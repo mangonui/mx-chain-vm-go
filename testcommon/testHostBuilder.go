@@ -43,7 +43,18 @@ func NewTestHostBuilder(tb testing.TB) *TestHostBuilder {
 			OverrideVMExecutor:        nil,
 			WasmerSIGSEGVPassthrough:  false,
 			Hasher:                    defaultHasher,
-			MapOpcodeAddressIsAllowed: map[string]map[string]struct{}{},
+			MapOpcodeAddressIsAllowed: defaultOpcodeAddressAllowMap(),
+		},
+	}
+}
+
+func defaultOpcodeAddressAllowMap() map[string]map[string]struct{} {
+	return map[string]map[string]struct{}{
+		"managedDRWASyncMirror": {
+			string(ParentAddress): {},
+		},
+		"managedDRWANativeGovernanceQuery": {
+			string(ParentAddress): {},
 		},
 	}
 }

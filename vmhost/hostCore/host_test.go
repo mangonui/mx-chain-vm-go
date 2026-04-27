@@ -9,10 +9,47 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/multiversx/mx-chain-vm-go/vmhost/mock"
+	mockcontext "github.com/multiversx/mx-chain-vm-go/mock/context"
 	"github.com/stretchr/testify/require"
 )
+
+func TestVmHost_IsAllowedToExecute_DRWASyncDynamicAuthorization(t *testing.T) {
+	blockchainHook := &mockcontext.BlockchainHookStub{
+		IsAuthorizedDRWASyncCallerCalled: func(callerAddress []byte) bool {
+			return string(callerAddress) == "drwa-contract-address"
+		},
+	}
+	bfc := builtInFunctions.NewBuiltInFunctionContainer()
+	epochNotifier := &mock.EpochNotifierStub{}
+	epochsHandler := &worldmock.EnableEpochsHandlerStub{}
+	esdtTransferParser, err := parsers.NewESDTTransferParser(worldmock.WorldMarshalizer)
+	require.NoError(t, err)
+
+	host, err := NewVMHost(blockchainHook, &vmhost.VMHostParameters{
+		VMType:                    []byte("vmType"),
+		ESDTTransferParser:        esdtTransferParser,
+		BuiltInFuncContainer:      bfc,
+		GasSchedule:               wasmConfig.MakeGasMapForTests(),
+		ProtectedKeyPrefix:        []byte("ELROND"),
+		EpochNotifier:             epochNotifier,
+		EnableEpochsHandler:       epochsHandler,
+		Hasher:                    worldmock.DefaultHasher,
+		MapOpcodeAddressIsAllowed: map[string]map[string]struct{}{},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, host)
+
+	runtimeContext := &mockcontext.RuntimeContextMock{SCAddress: []byte("drwa-contract-address")}
+	host.SetRuntimeContext(runtimeContext)
+
+	require.True(t, host.IsAllowedToExecute("managedDRWASyncMirror"))
+
+	runtimeContext.SCAddress = []byte("unauthorized-address")
+	require.False(t, host.IsAllowedToExecute("managedDRWASyncMirror"))
+}
 
 func TestNewVMHost(t *testing.T) {
 	blockchainHook := worldmock.NewMockWorld()

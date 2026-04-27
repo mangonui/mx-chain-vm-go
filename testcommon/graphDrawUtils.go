@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/awalterschulze/gographviz"
 )
@@ -29,7 +31,15 @@ func CreateSvg(file string, graphviz *gographviz.Graph) {
 
 // CreateSvgWithLocation -
 func CreateSvgWithLocation(folder string, file string, graphviz *gographviz.Graph) {
-	destDot := folder + file + ".dot"
+	// Sanitize inputs to prevent path traversal (Snyk TP-01).
+	cleanFolder := filepath.Clean(folder)
+	cleanFile := filepath.Base(file)
+	if strings.Contains(cleanFile, "..") {
+		panic("file name must not contain path traversal sequences")
+	}
+
+	destDot := filepath.Join(cleanFolder, cleanFile+".dot")
+	destSvg := filepath.Join(cleanFolder, cleanFile+".svg")
 
 	output := graphviz.String()
 	err := os.WriteFile(destDot, []byte(output), 0644)
@@ -42,7 +52,7 @@ func CreateSvgWithLocation(folder string, file string, graphviz *gographviz.Grap
 		panic(err)
 	}
 
-	err = os.WriteFile(folder+file+".svg", out, 0644)
+	err = os.WriteFile(destSvg, out, 0644)
 	if err != nil {
 		panic(err)
 	}

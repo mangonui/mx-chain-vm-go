@@ -150,6 +150,8 @@ type ManagedVMHooks interface {
 	ManagedGetCodeMetadata(addressHandle int32, responseHandle int32)
 	ManagedGetCodeHash(addressHandle int32, codeHashHandle int32)
 	ManagedIsBuiltinFunction(functionNameHandle int32) int32
+	ManagedDRWASyncMirror(payloadHandle int32) int32
+	ManagedDRWANativeGovernanceQuery(queryType int32, keyHandle int32, destHandle int32) int32
 }
 
 type BigFloatVMHooks interface {

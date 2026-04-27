@@ -35,6 +35,7 @@ var _ vmhost.VMHost = (*vmHost)(nil)
 var _ scenexec.VMInterface = (*vmHost)(nil)
 
 const minExecutionTimeout = time.Second
+const maxExecutionTimeout = 30 * time.Second
 const internalVMErrors = "internalVMErrors"
 
 // allFlags must have all flags used by mx-chain-vm-go in the current version
@@ -136,7 +137,11 @@ func NewVMHost(
 	}
 	newExecutionTimeout := time.Duration(hostParameters.TimeOutForSCExecutionInMilliseconds) * time.Millisecond
 	if newExecutionTimeout > minExecutionTimeout {
-		host.executionTimeout = newExecutionTimeout
+		if newExecutionTimeout > maxExecutionTimeout {
+			host.executionTimeout = maxExecutionTimeout
+		} else {
+			host.executionTimeout = newExecutionTimeout
+		}
 	}
 
 	host.blockchainContext, err = contexts.NewBlockchainContext(host, blockChainHook)
@@ -553,12 +558,18 @@ func (host *vmHost) AreInSameShard(leftAddress []byte, rightAddress []byte) bool
 // IsAllowedToExecute returns true if the special opcode is allowed to be run by the address
 func (host *vmHost) IsAllowedToExecute(opcode string) bool {
 	mapAddresses, ok := host.mapOpcodeAddressIsAllowed[opcode]
-	if !ok {
-		return false
+	if ok {
+		_, ok = mapAddresses[string(host.Runtime().GetContextAddress())]
+		if ok {
+			return true
+		}
 	}
 
-	_, ok = mapAddresses[string(host.Runtime().GetContextAddress())]
-	return ok
+	if opcode == "managedDRWASyncMirror" {
+		return host.Blockchain().IsAuthorizedDRWASyncCaller(host.Runtime().GetContextAddress())
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
