@@ -134,6 +134,29 @@ func TestBlockchainContext_GetBalance_Updates(t *testing.T) {
 	require.Equal(t, big.NewInt(1000), account.Balance)
 }
 
+func TestBlockchainContext_ApplyDRWASyncEnvelopeBytes_ReadOnly(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	hook := &contextmock.BlockchainHookStub{
+		ApplyDRWASyncEnvelopeBytesCalled: func(_ []byte, _ []byte) error {
+			called = true
+			return nil
+		},
+	}
+	host := &contextmock.VMHostMock{
+		RuntimeContext:           &contextmock.RuntimeContextMock{ReadOnlyFlag: true},
+		EnableEpochsHandlerField: &worldmock.EnableEpochsHandlerStub{},
+	}
+
+	blockchainContext, err := NewBlockchainContext(host, hook)
+	require.NoError(t, err)
+
+	err = blockchainContext.ApplyDRWASyncEnvelopeBytes([]byte("payload"), []byte("caller"))
+	require.ErrorIs(t, err, vmhost.ErrInvalidCallOnReadOnlyMode)
+	require.False(t, called)
+}
+
 func TestBlockchainContext_GetNonceAndIncrease(t *testing.T) {
 	t.Parallel()
 
@@ -413,18 +436,18 @@ func TestBlockchainContext_Getters(t *testing.T) {
 
 	mockWorld := &worldmock.MockWorld{
 		PreviousBlockInfo: &worldmock.BlockInfo{
-			BlockTimestamp: 6749,
-			BlockNonce:     90,
-			BlockRound:     96,
-			BlockEpoch:     3,
-			RandomSeed:     &randomSeed1,
+			BlockTimestampMs: 6749000,
+			BlockNonce:       90,
+			BlockRound:       96,
+			BlockEpoch:       3,
+			RandomSeed:       &randomSeed1,
 		},
 		CurrentBlockInfo: &worldmock.BlockInfo{
-			BlockTimestamp: 6800,
-			BlockNonce:     98,
-			BlockRound:     99,
-			BlockEpoch:     4,
-			RandomSeed:     &randomSeed2,
+			BlockTimestampMs: 6800000,
+			BlockNonce:       98,
+			BlockRound:       99,
+			BlockEpoch:       4,
+			RandomSeed:       &randomSeed2,
 		},
 		StateRootHash: []byte("root hash"),
 	}

@@ -54,6 +54,11 @@ const (
 	managedIsBuiltinFunction                     = "managedIsBuiltinFunction"
 	managedMultiTransferESDTNFTExecuteByUser     = "managedMultiTransferESDTNFTExecuteByUser"
 	managedMultiTransferESDTNFTExecuteWithReturn = "managedMultiTransferESDTNFTExecuteByWithReturn"
+	managedDRWASyncMirrorName                    = "managedDRWASyncMirror"
+	managedDRWANativeGovernanceQueryName         = "managedDRWANativeGovernanceQuery"
+	maxDRWASyncPayloadBytes                      = 1 << 20
+	maxDRWASyncFieldLen                          = 64 * 1024
+	maxDRWASyncOps                               = 256
 )
 
 const EGLDTokenName = "EGLD-000000" // TODO: maybe move to core?
@@ -1675,4 +1680,230 @@ func ManagedIsBuiltinFunctionWithHost(host vmhost.VMHost, functionNameHandle int
 	}
 
 	return 0
+}
+
+// ManagedDRWASyncMirror VMHooks implementation.
+// @autogenerate(VMHooks)
+func (context *VMHooksImpl) ManagedDRWASyncMirror(payloadHandle int32) int32 {
+	host := context.GetVMHost()
+	if !host.IsAllowedToExecute(managedDRWASyncMirrorName) {
+		FailExecution(host, vmhost.ErrOpcodeIsNotAllowed)
+		return 1
+	}
+
+	managedType := context.GetManagedTypesContext()
+	blockchain := context.GetBlockchainContext()
+	metering := context.GetMeteringContext()
+	runtime := context.GetRuntimeContext()
+
+	gasToUse := metering.GasSchedule().ManagedBufferAPICost.MBufferGetBytes
+	err := metering.UseGasBoundedAndAddTracedGas(managedDRWASyncMirrorName, gasToUse)
+	if err != nil {
+		context.FailExecution(err)
+		return 1
+	}
+
+	payload, err := managedType.GetBytes(payloadHandle)
+	if err != nil {
+		context.FailExecution(err)
+		return 1
+	}
+	err = managedType.ConsumeGasForBytes(payload)
+	if err != nil {
+		context.FailExecution(err)
+		return 1
+	}
+	if len(payload) > maxDRWASyncPayloadBytes {
+		context.FailExecution(errors.New("DRWA sync payload too large"))
+		return 1
+	}
+	if hasZeroDRWASyncHashPrefix(payload) {
+		context.FailExecution(vmhost.ErrInvalidArgument)
+		return 1
+	}
+
+	// Count operations in the payload to charge per-operation state-write gas.
+	// The envelope binary format is: [32-byte hash] || [caller_tag byte] || (op_tag + fields)*
+	// We count op-tag bytes (0x00, 0x01, 0x02) after offset 33 as a proxy for
+	// operation count.  Each write touches at minimum one trie node, so we
+	// charge StorageStore gas per operation.
+	opCount, ok := countDRWASyncOperations(payload)
+	if !ok {
+		context.FailExecution(vmhost.ErrInvalidArgument)
+		return 1
+	}
+	if opCount > 0 {
+		// Charge StorePerByte × drwaSyncMinBytesPerOp as the minimum write cost per
+		// operation.  This accounts for the trie node update triggered by each
+		// token-policy or holder-mirror write; the actual byte-proportional cost is
+		// already covered by ConsumeGasForBytes above.
+		const drwaSyncMinBytesPerOp = 64
+		perOpGas := metering.GasSchedule().BaseOperationCost.StorePerByte * drwaSyncMinBytesPerOp
+		writeGas, overflow := safeMulUint64(uint64(opCount), perOpGas)
+		if overflow {
+			context.FailExecution(errors.New("DRWA sync per-operation gas overflow"))
+			return 1
+		}
+		err = metering.UseGasBoundedAndAddTracedGas(managedDRWASyncMirrorName, writeGas)
+		if err != nil {
+			context.FailExecution(err)
+			return 1
+		}
+	}
+
+	err = blockchain.ApplyDRWASyncEnvelopeBytes(payload, runtime.GetContextAddress())
+	if err != nil {
+		context.FailExecution(err)
+		return 1
+	}
+
+	return 0
+}
+
+// ManagedDRWANativeGovernanceQuery VMHooks implementation.
+// @autogenerate(VMHooks)
+func (context *VMHooksImpl) ManagedDRWANativeGovernanceQuery(queryType int32, keyHandle int32, destHandle int32) int32 {
+	managedType := context.GetManagedTypesContext()
+	blockchain := context.GetBlockchainContext()
+	metering := context.GetMeteringContext()
+
+	gasToUse := metering.GasSchedule().ManagedBufferAPICost.MBufferGetBytes
+	err := metering.UseGasBoundedAndAddTracedGas(managedDRWANativeGovernanceQueryName, gasToUse)
+	if err != nil {
+		context.FailExecution(err)
+		return 1
+	}
+
+	if queryType < 0 {
+		context.FailExecution(vmhost.ErrInvalidArgument)
+		return 1
+	}
+
+	key, err := managedType.GetBytes(keyHandle)
+	if err != nil {
+		context.FailExecution(err)
+		return 1
+	}
+	err = managedType.ConsumeGasForBytes(key)
+	if err != nil {
+		context.FailExecution(err)
+		return 1
+	}
+	if len(key) == 0 || len(key) > maxDRWASyncFieldLen {
+		context.FailExecution(vmhost.ErrInvalidArgument)
+		return 1
+	}
+
+	result, err := blockchain.QueryDRWANativeGovernance(uint32(queryType), key)
+	if err != nil {
+		context.FailExecution(err)
+		return 1
+	}
+	if len(result) > maxDRWASyncFieldLen {
+		context.FailExecution(errors.New("DRWA native governance query result too large"))
+		return 1
+	}
+	err = managedType.ConsumeGasForBytes(result)
+	if err != nil {
+		context.FailExecution(err)
+		return 1
+	}
+
+	managedType.SetBytes(destHandle, result)
+	return 0
+}
+
+func hasZeroDRWASyncHashPrefix(payload []byte) bool {
+	const hashLen = 32
+	if len(payload) < hashLen {
+		return false
+	}
+
+	for i := 0; i < hashLen; i++ {
+		if payload[i] != 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+// countDRWASyncOperations counts the number of sync operations encoded in a
+// binary DRWA sync payload ([32-byte hash] || [caller_tag] || ops...).
+// It walks the canonical serialization format:
+//
+//	[op_tag u8] [token_id: u32-len-prefixed] [holder: u32-len-prefixed] [version u64] [body: u32-len-prefixed]
+func countDRWASyncOperations(payload []byte) (int, bool) {
+	const hashLen = 32
+	const callerTagLen = 1
+	const headerLen = hashLen + callerTagLen
+
+	if len(payload) <= headerLen {
+		return 0, true
+	}
+
+	data := payload[headerLen:]
+	count := 0
+	for len(data) > 0 {
+		if count >= maxDRWASyncOps {
+			return 0, false
+		}
+		// op_tag (1 byte)
+		if len(data) < 1 {
+			return 0, false
+		}
+		data = data[1:]
+
+		// token_id: 4-byte length prefix + body
+		var ok bool
+		data, ok = skipLenPrefixed(data)
+		if !ok {
+			return 0, false
+		}
+		// holder: 4-byte length prefix + body
+		data, ok = skipLenPrefixed(data)
+		if !ok {
+			return 0, false
+		}
+		// version: 8 bytes
+		if len(data) < 8 {
+			return 0, false
+		}
+		data = data[8:]
+		// body: 4-byte length prefix + body
+		data, ok = skipLenPrefixed(data)
+		if !ok {
+			return 0, false
+		}
+
+		count++
+	}
+
+	return count, true
+}
+
+func skipLenPrefixed(data []byte) ([]byte, bool) {
+	if len(data) < 4 {
+		return data, false
+	}
+	length := int(data[0])<<24 | int(data[1])<<16 | int(data[2])<<8 | int(data[3])
+	if length > maxDRWASyncFieldLen {
+		return data, false
+	}
+	data = data[4:]
+	if len(data) < length {
+		return data, false
+	}
+	return data[length:], true
+}
+
+func safeMulUint64(a, b uint64) (uint64, bool) {
+	if a == 0 || b == 0 {
+		return 0, false
+	}
+	result := a * b
+	if result/a != b {
+		return 0, true
+	}
+	return result, false
 }

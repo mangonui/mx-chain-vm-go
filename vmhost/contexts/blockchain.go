@@ -259,6 +259,25 @@ func (context *blockchainContext) CurrentRandomSeed() []byte {
 	return context.blockChainHook.CurrentRandomSeed()
 }
 
+// ApplyDRWASyncEnvelopeBytes applies an encoded DRWA sync envelope through the blockchain hook.
+func (context *blockchainContext) ApplyDRWASyncEnvelopeBytes(payload []byte, callerAddress []byte) error {
+	if context.host.Runtime().ReadOnly() {
+		return vmhost.ErrInvalidCallOnReadOnlyMode
+	}
+	return context.blockChainHook.ApplyDRWASyncEnvelopeBytes(payload, callerAddress)
+}
+
+// QueryDRWANativeGovernance returns encoded native DRWA governance state.
+func (context *blockchainContext) QueryDRWANativeGovernance(queryType uint32, key []byte) ([]byte, error) {
+	return context.blockChainHook.QueryDRWANativeGovernance(queryType, key)
+}
+
+// IsAuthorizedDRWASyncCaller returns whether the caller address matches any
+// currently provisioned DRWA sync authorized caller.
+func (context *blockchainContext) IsAuthorizedDRWASyncCaller(callerAddress []byte) bool {
+	return context.blockChainHook.IsAuthorizedDRWASyncCaller(callerAddress)
+}
+
 // RoundTime returns the duruation of a round
 func (context *blockchainContext) RoundTime() uint64 {
 	return context.blockChainHook.RoundTime()

@@ -139,6 +139,8 @@ package wasmer2
 // extern void      w2_managedGetCodeMetadata(void* context, int32_t addressHandle, int32_t responseHandle);
 // extern void      w2_managedGetCodeHash(void* context, int32_t addressHandle, int32_t codeHashHandle);
 // extern int32_t   w2_managedIsBuiltinFunction(void* context, int32_t functionNameHandle);
+// extern int32_t   w2_managedDRWASyncMirror(void* context, int32_t payloadHandle);
+// extern int32_t   w2_managedDRWANativeGovernanceQuery(void* context, int32_t queryType, int32_t keyHandle, int32_t destHandle);
 // extern int32_t   w2_bigFloatNewFromParts(void* context, int32_t integralPart, int32_t fractionalPart, int32_t exponent);
 // extern int32_t   w2_bigFloatNewFromFrac(void* context, long long numerator, long long denominator);
 // extern int32_t   w2_bigFloatNewFromSci(void* context, long long significand, long long exponent);
@@ -427,6 +429,8 @@ func populateCgoFunctionPointers() *cWasmerVmHookPointers {
 		managed_get_code_metadata_func_ptr:                           funcPointer(C.w2_managedGetCodeMetadata),
 		managed_get_code_hash_func_ptr:                               funcPointer(C.w2_managedGetCodeHash),
 		managed_is_builtin_function_func_ptr:                         funcPointer(C.w2_managedIsBuiltinFunction),
+		managed_drwasync_mirror_func_ptr:                             funcPointer(C.w2_managedDRWASyncMirror),
+		managed_drwa_native_governance_query_func_ptr:                funcPointer(C.w2_managedDRWANativeGovernanceQuery),
 		big_float_new_from_parts_func_ptr:                            funcPointer(C.w2_bigFloatNewFromParts),
 		big_float_new_from_frac_func_ptr:                             funcPointer(C.w2_bigFloatNewFromFrac),
 		big_float_new_from_sci_func_ptr:                              funcPointer(C.w2_bigFloatNewFromSci),
@@ -1345,6 +1349,18 @@ func w2_managedGetCodeHash(context unsafe.Pointer, addressHandle int32, codeHash
 func w2_managedIsBuiltinFunction(context unsafe.Pointer, functionNameHandle int32) int32 {
 	vmHooks := getVMHooksFromContextRawPtr(context)
 	return vmHooks.ManagedIsBuiltinFunction(functionNameHandle)
+}
+
+//export w2_managedDRWASyncMirror
+func w2_managedDRWASyncMirror(context unsafe.Pointer, payloadHandle int32) int32 {
+	vmHooks := getVMHooksFromContextRawPtr(context)
+	return vmHooks.ManagedDRWASyncMirror(payloadHandle)
+}
+
+//export w2_managedDRWANativeGovernanceQuery
+func w2_managedDRWANativeGovernanceQuery(context unsafe.Pointer, queryType int32, keyHandle int32, destHandle int32) int32 {
+	vmHooks := getVMHooksFromContextRawPtr(context)
+	return vmHooks.ManagedDRWANativeGovernanceQuery(queryType, keyHandle, destHandle)
 }
 
 //export w2_bigFloatNewFromParts

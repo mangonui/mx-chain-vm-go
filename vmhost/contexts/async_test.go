@@ -890,6 +890,61 @@ func TestAsyncContext_CreateCallbackInput_NotEnoughGas(t *testing.T) {
 	require.True(t, errors.Is(err, vmhost.ErrNotEnoughGas))
 }
 
+func TestAsyncContext_CallCallback_DisablesRestoreGasAroundParentCallback(t *testing.T) {
+	host, _, originalVMInput := initializeVMAndWasmerAsyncContextWithAliceAndBob(t)
+	host.Runtime().InitStateFromContractCallInput(originalVMInput)
+	mockWasmerInstance.AddMockMethod("successCallback", nil)
+	mockWasmerInstance.AddMockMethod("errorCallback", nil)
+
+	parentAsync := makeAsyncContext(t, host, Alice)
+	parentAsync.callID = []byte("parent-call-id")
+
+	asyncCall := defaultAsyncCallAliceToBob()
+	asyncCall.CallID = []byte("child-call-id")
+	asyncCall.Status = vmhost.AsyncCallResolved
+	asyncCall.GasLocked = 200
+
+	err := parentAsync.RegisterAsyncCall("test", asyncCall)
+	require.NoError(t, err)
+
+	childAsync := makeAsyncContext(t, host, Bob)
+	childAsync.callerAddr = Alice
+	childAsync.callerCallID = parentAsync.callID
+	childAsync.stateStack = []*asyncContext{parentAsync}
+
+	vmOutput := defaultDestOutputOk()
+	vmOutput.GasRemaining = 50
+
+	callbackOutput := defaultCallbackOutputOk()
+	callbackOutput.GasRemaining = 17
+	host.EnqueueVMOutput(callbackOutput)
+
+	initialGasLeft := host.Metering().GasLeft()
+	isComplete, callbackVMOutput, err := childAsync.callCallback(asyncCall.CallID, vmOutput, nil)
+	require.NoError(t, err)
+	require.True(t, isComplete)
+	require.NotNil(t, callbackVMOutput)
+
+	meteringMock, ok := host.Metering().(*contextmock.MeteringContextMock)
+	require.True(t, ok)
+	require.Equal(t, 1, meteringMock.DisableCalls)
+	require.Equal(t, 1, meteringMock.EnableCalls)
+	require.Equal(t, 1, meteringMock.RestoreGasCalls)
+	require.False(t, meteringMock.RestoreGasDisabled)
+	require.Equal(t, initialGasLeft, host.Metering().GasLeft())
+
+	require.Len(t, host.StoredInputs, 1)
+	host.StoredInputs[0].AsyncArguments = nil
+
+	expectedInput := defaultCallbackInputBobToAlice(originalVMInput)
+	expectedInput.GasProvided = asyncCall.GasLocked + vmOutput.GasRemaining
+	expectedInput.GasProvided -= defaultOutputDataLengthAsArgs(asyncCall, vmOutput)
+	expectedInput.GasProvided -= host.Metering().GasSchedule().BaseOpsAPICost.AsyncCallStep
+	expectedInput.GasLocked = 0
+
+	require.Equal(t, expectedInput, host.StoredInputs[0])
+}
+
 func TestAsyncContext_FinishSyncExecution_NilError_NilVMOutput(t *testing.T) {
 	host, _, originalVMInput := initializeVMAndWasmerAsyncContextWithAliceAndBob(t)
 	host.Runtime().InitStateFromContractCallInput(originalVMInput)

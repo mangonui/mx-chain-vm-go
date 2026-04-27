@@ -166,6 +166,7 @@ typedef struct {
   void (*managed_get_code_metadata_func_ptr)(void *context, int32_t address_handle, int32_t response_handle);
   void (*managed_get_code_hash_func_ptr)(void *context, int32_t address_handle, int32_t code_hash_handle);
   int32_t (*managed_is_builtin_function_func_ptr)(void *context, int32_t function_name_handle);
+  int32_t (*managed_drwasync_mirror_func_ptr)(void *context, int32_t payload_handle);
   int32_t (*big_float_new_from_parts_func_ptr)(void *context, int32_t integral_part, int32_t fractional_part, int32_t exponent);
   int32_t (*big_float_new_from_frac_func_ptr)(void *context, int64_t numerator, int64_t denominator);
   int32_t (*big_float_new_from_sci_func_ptr)(void *context, int64_t significand, int64_t exponent);
@@ -315,6 +316,7 @@ typedef struct {
   int32_t (*managed_verify_secp256r1_func_ptr)(void *context, int32_t key_handle, int32_t message_handle, int32_t sig_handle);
   int32_t (*managed_verify_blssignature_share_func_ptr)(void *context, int32_t key_handle, int32_t message_handle, int32_t sig_handle);
   int32_t (*managed_verify_blsaggregated_signature_func_ptr)(void *context, int32_t key_handle, int32_t message_handle, int32_t sig_handle);
+  int32_t (*managed_drwa_native_governance_query_func_ptr)(void *context, int32_t query_type, int32_t key_handle, int32_t dest_handle);
 } vm_exec_vm_hook_c_func_pointers;
 
 typedef struct {

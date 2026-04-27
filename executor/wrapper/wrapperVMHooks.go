@@ -1123,6 +1123,24 @@ func (w *WrapperVMHooks) ManagedIsBuiltinFunction(functionNameHandle int32) int3
 	return result
 }
 
+// ManagedDRWASyncMirror VM hook wrapper
+func (w *WrapperVMHooks) ManagedDRWASyncMirror(payloadHandle int32) int32 {
+	callInfo := fmt.Sprintf("ManagedDRWASyncMirror(%d)", payloadHandle)
+	w.logger.LogVMHookCallBefore(callInfo)
+	result := w.wrappedVMHooks.ManagedDRWASyncMirror(payloadHandle)
+	w.logger.LogVMHookCallAfter(callInfo)
+	return result
+}
+
+// ManagedDRWANativeGovernanceQuery VM hook wrapper
+func (w *WrapperVMHooks) ManagedDRWANativeGovernanceQuery(queryType int32, keyHandle int32, destHandle int32) int32 {
+	callInfo := fmt.Sprintf("ManagedDRWANativeGovernanceQuery(%d, %d, %d)", queryType, keyHandle, destHandle)
+	w.logger.LogVMHookCallBefore(callInfo)
+	result := w.wrappedVMHooks.ManagedDRWANativeGovernanceQuery(queryType, keyHandle, destHandle)
+	w.logger.LogVMHookCallAfter(callInfo)
+	return result
+}
+
 // BigFloatNewFromParts VM hook wrapper
 func (w *WrapperVMHooks) BigFloatNewFromParts(integralPart int32, fractionalPart int32, exponent int32) int32 {
 	callInfo := fmt.Sprintf("BigFloatNewFromParts(%d, %d, %d)", integralPart, fractionalPart, exponent)

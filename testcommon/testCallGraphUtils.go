@@ -3,6 +3,8 @@ package testcommon
 import (
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -16,7 +18,7 @@ import (
 )
 
 const generateGraphs = false
-const graphsFolder = "/home/bogdan/graphs/"
+const graphsFolderEnvKey = "MX_CHAIN_VM_GO_GRAPHS_DIR"
 
 // LogGraph -
 var LogGraph = logger.GetOrCreate("vm/graph")
@@ -427,9 +429,17 @@ func addFunctionToTempList(contract *MockTestSmartContract, functionName string,
 // MakeGraphAndImage -
 func MakeGraphAndImage(graph *TestCallGraph) *TestCallGraph {
 	if generateGraphs {
-		GenerateSVGforGraph(graph, graphsFolder, getTestFunctionName())
+		GenerateSVGforGraph(graph, getGraphsFolder(), getTestFunctionName())
 	}
 	return graph
+}
+
+func getGraphsFolder() string {
+	if folder := strings.TrimSpace(os.Getenv(graphsFolderEnvKey)); folder != "" {
+		return folder
+	}
+
+	return filepath.Join(os.TempDir(), "mx-chain-vm-go-graphs")
 }
 
 func getTestFunctionName() string {

@@ -107,6 +107,9 @@ type BlockchainContext interface {
 	IsPaused(tokenID []byte) bool
 	GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	ApplyDRWASyncEnvelopeBytes(payload []byte, callerAddress []byte) error
+	QueryDRWANativeGovernance(queryType uint32, key []byte) ([]byte, error)
+	IsAuthorizedDRWASyncCaller(callerAddress []byte) bool
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int)
 	ClearCompiledCodes()

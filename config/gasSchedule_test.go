@@ -17,6 +17,10 @@ type operations struct {
 	OperationE uint64
 }
 
+type pointerOperations struct {
+	OperationA *uint64
+}
+
 func TestDecode(t *testing.T) {
 	gasMap := make(map[string]uint64)
 	gasMap["OperationB"] = 4
@@ -74,6 +78,35 @@ func TestDecode_ZeroGasCostError(t *testing.T) {
 
 	err = checkForZeroUint64Fields(*wasmCosts)
 	assert.Error(t, err)
+}
+
+func TestDecode_NilPointerGasCostError(t *testing.T) {
+	t.Parallel()
+
+	err := checkForZeroUint64Fields(pointerOperations{})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "OperationA")
+}
+
+func TestDecode_PointerGasCostValueZeroError(t *testing.T) {
+	t.Parallel()
+
+	zero := uint64(0)
+	err := checkForZeroUint64Fields(pointerOperations{
+		OperationA: &zero,
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "OperationA")
+}
+
+func TestDecode_PointerGasCostValueNonZeroOK(t *testing.T) {
+	t.Parallel()
+
+	value := uint64(7)
+	err := checkForZeroUint64Fields(pointerOperations{
+		OperationA: &value,
+	})
+	assert.NoError(t, err)
 }
 
 func Test_getSignedCoefficient(t *testing.T) {
