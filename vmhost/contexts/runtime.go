@@ -25,6 +25,8 @@ var mapNewCryptoAPI = map[string]struct{}{
 	"managedGetOriginalCallerAddr":             {},
 	"managedGetRelayerAddr":                    {},
 	"managedMultiTransferESDTNFTExecuteByUser": {},
+	"managedDRWASyncMirror":                    {},
+	"managedDRWANativeGovernanceQuery":         {},
 }
 
 var mapBarnardOpcodes = map[string]struct{}{

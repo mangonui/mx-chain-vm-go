@@ -178,15 +178,45 @@ func getSignedCoefficient(coefficient uint64, sign uint64) int64 {
 }
 
 func checkForZeroUint64Fields(arg interface{}) error {
-	v := reflect.ValueOf(arg)
-	for i := 0; i < v.NumField(); i++ {
-		field := v.Field(i)
-		if field.Kind() != reflect.Uint64 && field.Kind() != reflect.Uint32 {
-			continue
+	return checkForZeroUint64Value(reflect.ValueOf(arg), "")
+}
+
+func checkForZeroUint64Value(value reflect.Value, path string) error {
+	if !value.IsValid() {
+		return nil
+	}
+
+	switch value.Kind() {
+	case reflect.Interface:
+		if value.IsNil() {
+			return nil
 		}
-		if field.Uint() == 0 {
-			name := v.Type().Field(i).Name
-			return fmt.Errorf("gas cost for operation %s has been set to 0 or is not set", name)
+		return checkForZeroUint64Value(value.Elem(), path)
+	case reflect.Ptr:
+		if value.IsNil() {
+			if path == "" {
+				path = value.Type().String()
+			}
+			return fmt.Errorf("gas cost for operation %s is nil", path)
+		}
+		return checkForZeroUint64Value(value.Elem(), path)
+	case reflect.Struct:
+		valueType := value.Type()
+		for i := 0; i < value.NumField(); i++ {
+			fieldPath := valueType.Field(i).Name
+			if path != "" {
+				fieldPath = path + "." + fieldPath
+			}
+			if err := checkForZeroUint64Value(value.Field(i), fieldPath); err != nil {
+				return err
+			}
+		}
+	case reflect.Uint64, reflect.Uint32:
+		if value.Uint() == 0 {
+			if path == "" {
+				path = value.Type().String()
+			}
+			return fmt.Errorf("gas cost for operation %s has been set to 0 or is not set", path)
 		}
 	}
 

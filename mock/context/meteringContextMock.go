@@ -17,6 +17,10 @@ type MeteringContextMock struct {
 	GasProvidedMock   uint64
 	GasComputedToLock uint64
 	BlockGasLimitMock uint64
+	RestoreGasDisabled bool
+	RestoreGasCalls    int
+	DisableCalls       int
+	EnableCalls        int
 	Err               error
 }
 
@@ -71,6 +75,10 @@ func (m *MeteringContextMock) FreeGas(gas uint64) {
 
 // RestoreGas mocked method
 func (m *MeteringContextMock) RestoreGas(gas uint64) {
+	m.RestoreGasCalls++
+	if m.RestoreGasDisabled {
+		return
+	}
 	m.GasLeftMock += gas
 }
 
@@ -199,10 +207,16 @@ func (m *MeteringContextMock) DeductInitialGasForIndirectDeployment(_ vmhost.Cod
 }
 
 // EnableRestoreGas mocked method
-func (m *MeteringContextMock) EnableRestoreGas() {}
+func (m *MeteringContextMock) EnableRestoreGas() {
+	m.EnableCalls++
+	m.RestoreGasDisabled = false
+}
 
 // DisableRestoreGas mocked method
-func (m *MeteringContextMock) DisableRestoreGas() {}
+func (m *MeteringContextMock) DisableRestoreGas() {
+	m.DisableCalls++
+	m.RestoreGasDisabled = true
+}
 
 // StartGasTracing mocked method
 func (m *MeteringContextMock) StartGasTracing(_ string) {}

@@ -253,10 +253,17 @@ func (context *VMHooksImpl) SignalError(messageOffset executor.MemPtr, messageLe
 	metering := context.GetMeteringContext()
 	metering.StartGasTracing(signalErrorName)
 
-	gasToUse := metering.GasSchedule().BaseOpsAPICost.SignalError
-	gasToUse += metering.GasSchedule().BaseOperationCost.PersistPerByte * uint64(messageLength)
+	gasToUse, err := computeSignalErrorGas(
+		metering.GasSchedule().BaseOpsAPICost.SignalError,
+		metering.GasSchedule().BaseOperationCost.PersistPerByte,
+		messageLength,
+	)
+	if err != nil {
+		context.FailExecution(err)
+		return
+	}
 
-	err := metering.UseGasBounded(gasToUse)
+	err = metering.UseGasBounded(gasToUse)
 	if err != nil && runtime.UseGasBoundedShouldFailExecution() {
 		context.FailExecution(err)
 		return
@@ -1154,8 +1161,16 @@ func TransferESDTNFTExecuteWithTypedArgsWithFailure(
 
 	output := host.Output()
 
-	gasToUse := metering.GasSchedule().BaseOpsAPICost.TransferValue * uint64(len(transfers))
-	err := metering.UseGasBounded(gasToUse)
+	gasToUse, err := computeTransferBatchBaseGas(
+		metering.GasSchedule().BaseOpsAPICost.TransferValue,
+		len(transfers),
+	)
+	if err != nil {
+		FailExecution(host, err)
+		return 1
+	}
+
+	err = metering.UseGasBounded(gasToUse)
 	if err != nil && runtime.UseGasBoundedShouldFailExecution() {
 		FailExecution(host, err)
 		return 1
@@ -1240,8 +1255,16 @@ func TransferESDTNFTExecuteByUserWithTypedArgs(
 
 	output := host.Output()
 
-	gasToUse := metering.GasSchedule().BaseOpsAPICost.TransferValue * uint64(len(transfers))
-	err := metering.UseGasBounded(gasToUse)
+	gasToUse, err := computeTransferBatchBaseGas(
+		metering.GasSchedule().BaseOpsAPICost.TransferValue,
+		len(transfers),
+	)
+	if err != nil {
+		FailExecution(host, err)
+		return 1
+	}
+
+	err = metering.UseGasBounded(gasToUse)
 	if err != nil {
 		FailExecution(host, err)
 		return 1
@@ -2289,7 +2312,8 @@ func (context *VMHooksImpl) GetStorageLock(keyOffset executor.MemPtr, keyLength 
 
 	timeLock := big.NewInt(0).SetBytes(data).Int64()
 
-	// TODO if timelock <= currentTimeStamp { fail somehow }
+	// GetStorageLock is a raw storage read helper. Expiry enforcement belongs
+	// to IsStorageLocked(), which compares the returned timestamp to block time.
 
 	return timeLock
 }
@@ -3918,4 +3942,35 @@ func executeOnDestContextFromAPI(host vmhost.VMHost, input *vmcommon.ContractCal
 	}
 
 	return vmOutput, err
+}
+
+func computeSignalErrorGas(baseGas uint64, persistPerByte uint64, messageLength executor.MemLength) (uint64, error) {
+	if messageLength < 0 {
+		return 0, vmhost.ErrArgOutOfRange
+	}
+
+	lengthGas, err := math.MulUint64WithErr(persistPerByte, uint64(messageLength))
+	if err != nil {
+		return 0, vmhost.ErrArgOutOfRange
+	}
+
+	totalGas, err := math.AddUint64WithErr(baseGas, lengthGas)
+	if err != nil {
+		return 0, vmhost.ErrArgOutOfRange
+	}
+
+	return totalGas, nil
+}
+
+func computeTransferBatchBaseGas(transferValueGas uint64, numTransfers int) (uint64, error) {
+	if numTransfers < 0 {
+		return 0, vmhost.ErrArgOutOfRange
+	}
+
+	totalGas, err := math.MulUint64WithErr(transferValueGas, uint64(numTransfers))
+	if err != nil {
+		return 0, vmhost.ErrArgOutOfRange
+	}
+
+	return totalGas, nil
 }

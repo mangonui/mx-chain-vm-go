@@ -241,6 +241,10 @@ func cCString(string string) *cChar {
 	return (*cChar)(C.CString(string))
 }
 
+func cMalloc(size uintptr) unsafe.Pointer {
+	return C.malloc(C.size_t(size))
+}
+
 func cFree(pointer unsafe.Pointer) {
 	C.free(pointer)
 }

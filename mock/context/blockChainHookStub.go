@@ -33,6 +33,9 @@ type BlockchainHookStub struct {
 	EpochStartBlockRoundCalled       func() uint64
 
 	ProcessBuiltInFunctionCalled            func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	ApplyDRWASyncEnvelopeBytesCalled        func(payload []byte, callerAddress []byte) error
+	QueryDRWANativeGovernanceCalled         func(queryType uint32, key []byte) ([]byte, error)
+	IsAuthorizedDRWASyncCallerCalled        func(callerAddress []byte) bool
 	GetBuiltinFunctionNamesCalled           func() vmcommon.FunctionNames
 	GetAllStateCalled                       func(address []byte) (map[string][]byte, error)
 	GetUserAccountCalled                    func(address []byte) (vmcommon.UserAccountHandler, error)
@@ -214,6 +217,30 @@ func (b *BlockchainHookStub) ProcessBuiltInFunction(input *vmcommon.ContractCall
 		return b.ProcessBuiltInFunctionCalled(input)
 	}
 	return &vmcommon.VMOutput{}, nil
+}
+
+// ApplyDRWASyncEnvelopeBytes mocked method
+func (b *BlockchainHookStub) ApplyDRWASyncEnvelopeBytes(payload []byte, callerAddress []byte) error {
+	if b.ApplyDRWASyncEnvelopeBytesCalled != nil {
+		return b.ApplyDRWASyncEnvelopeBytesCalled(payload, callerAddress)
+	}
+	return nil
+}
+
+// QueryDRWANativeGovernance mocked method
+func (b *BlockchainHookStub) QueryDRWANativeGovernance(queryType uint32, key []byte) ([]byte, error) {
+	if b.QueryDRWANativeGovernanceCalled != nil {
+		return b.QueryDRWANativeGovernanceCalled(queryType, key)
+	}
+	return nil, nil
+}
+
+// IsAuthorizedDRWASyncCaller mocked method
+func (b *BlockchainHookStub) IsAuthorizedDRWASyncCaller(callerAddress []byte) bool {
+	if b.IsAuthorizedDRWASyncCallerCalled != nil {
+		return b.IsAuthorizedDRWASyncCallerCalled(callerAddress)
+	}
+	return false
 }
 
 // GetBuiltinFunctionNames mocked method

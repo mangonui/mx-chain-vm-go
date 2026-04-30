@@ -13,25 +13,30 @@ var _ executor.Executor = (*Wasmer2Executor)(nil)
 type Wasmer2Executor struct {
 	cgoExecutor *cWasmerExecutorT
 
-	vmHookPointers *cWasmerVmHookPointers
-	vmHooks        executor.VMHooks
-	vmHooksPtr     uintptr
-	vmHooksPtrPtr  unsafe.Pointer
+	vmHookPointers        *cWasmerVmHookPointers
+	vmHookPointersStorage unsafe.Pointer
+	vmHooks               executor.VMHooks
+	vmHooksPtr            uintptr
+	vmHooksPtrStorage     unsafe.Pointer
 
 	opcodeCost *OpcodeCost
 }
 
 // CreateExecutor creates a new wasmer executor.
 func CreateExecutor() (*Wasmer2Executor, error) {
-	vmHookPointers := populateCgoFunctionPointers()
-	localPtr := uintptr(unsafe.Pointer(vmHookPointers))
-	localPtrPtr := unsafe.Pointer(&localPtr)
+	vmHookPointers := allocateVMHookPointers()
+	vmHookPointersStorage := cMalloc(unsafe.Sizeof(uintptr(0)))
+	*(*uintptr)(vmHookPointersStorage) = uintptr(unsafe.Pointer(vmHookPointers))
+	wasmerExecutor := &Wasmer2Executor{
+		vmHookPointers:        vmHookPointers,
+		vmHookPointersStorage: vmHookPointersStorage,
+	}
 
 	var cExecutor *cWasmerExecutorT
 
 	var result = cWasmerNewExecutor(
 		&cExecutor,
-		localPtrPtr,
+		wasmerExecutor.vmHookPointersStorage,
 	)
 
 	if result != cWasmerOk {
@@ -40,10 +45,7 @@ func CreateExecutor() (*Wasmer2Executor, error) {
 
 	cWasmerForceInstallSighandlers()
 
-	wasmerExecutor := &Wasmer2Executor{
-		cgoExecutor:    cExecutor,
-		vmHookPointers: vmHookPointers,
-	}
+	wasmerExecutor.cgoExecutor = cExecutor
 
 	return wasmerExecutor, nil
 }
@@ -134,10 +136,12 @@ func (wasmerExecutor *Wasmer2Executor) IsInterfaceNil() bool {
 // InitVMHooks inits the VM hooks
 func (wasmerExecutor *Wasmer2Executor) initVMHooks(vmHooks executor.VMHooks) {
 	wasmerExecutor.vmHooks = vmHooks
-	localPtr := uintptr(unsafe.Pointer(&wasmerExecutor.vmHooks))
-	wasmerExecutor.vmHooksPtr = localPtr
-	wasmerExecutor.vmHooksPtrPtr = unsafe.Pointer(&localPtr)
-	cWasmerExecutorContextDataSet(wasmerExecutor.cgoExecutor, wasmerExecutor.vmHooksPtrPtr)
+	wasmerExecutor.vmHooksPtr = uintptr(unsafe.Pointer(&wasmerExecutor.vmHooks))
+	if wasmerExecutor.vmHooksPtrStorage == nil {
+		wasmerExecutor.vmHooksPtrStorage = cMalloc(unsafe.Sizeof(uintptr(0)))
+	}
+	*(*uintptr)(wasmerExecutor.vmHooksPtrStorage) = wasmerExecutor.vmHooksPtr
+	cWasmerExecutorContextDataSet(wasmerExecutor.cgoExecutor, wasmerExecutor.vmHooksPtrStorage)
 }
 
 func (wasmerExecutor *Wasmer2Executor) extractOpcodeCost(wasmOps *executor.WASMOpcodeCost) *OpcodeCost {
