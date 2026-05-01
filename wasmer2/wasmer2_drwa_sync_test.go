@@ -13,8 +13,8 @@ func TestManagedDRWASyncMirror_IsRegisteredInWasmerImports(t *testing.T) {
 	}
 
 	pointers := populateCgoFunctionPointers()
-	if pointers.managed_drwasync_mirror_func_ptr == nil {
-		t.Fatalf("managed_drwasync_mirror_func_ptr was not populated")
+	if pointers.managed_drwa_sync_mirror_func_ptr == nil {
+		t.Fatalf("managed_drwa_sync_mirror_func_ptr was not populated")
 	}
 	if pointers.managed_drwa_native_governance_query_func_ptr == nil {
 		t.Fatalf("managed_drwa_native_governance_query_func_ptr was not populated")
