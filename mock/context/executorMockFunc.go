@@ -137,6 +137,8 @@ var functionNames = map[string]struct{}{
 	"managedGetCodeMetadata":                       empty,
 	"managedGetCodeHash":                           empty,
 	"managedIsBuiltinFunction":                     empty,
+	"managedDRWASyncMirror":                        empty,
+	"managedDRWANativeGovernanceQuery":             empty,
 	"bigFloatNewFromParts":                         empty,
 	"bigFloatNewFromFrac":                          empty,
 	"bigFloatNewFromSci":                           empty,

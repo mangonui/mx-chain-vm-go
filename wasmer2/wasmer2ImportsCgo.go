@@ -429,7 +429,7 @@ func populateCgoFunctionPointers() *cWasmerVmHookPointers {
 		managed_get_code_metadata_func_ptr:                           funcPointer(C.w2_managedGetCodeMetadata),
 		managed_get_code_hash_func_ptr:                               funcPointer(C.w2_managedGetCodeHash),
 		managed_is_builtin_function_func_ptr:                         funcPointer(C.w2_managedIsBuiltinFunction),
-		managed_drwasync_mirror_func_ptr:                             funcPointer(C.w2_managedDRWASyncMirror),
+		managed_drwa_sync_mirror_func_ptr:                            funcPointer(C.w2_managedDRWASyncMirror),
 		managed_drwa_native_governance_query_func_ptr:                funcPointer(C.w2_managedDRWANativeGovernanceQuery),
 		big_float_new_from_parts_func_ptr:                            funcPointer(C.w2_bigFloatNewFromParts),
 		big_float_new_from_frac_func_ptr:                             funcPointer(C.w2_bigFloatNewFromFrac),
