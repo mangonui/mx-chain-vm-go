@@ -1,6 +1,7 @@
 package wasmer2
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"unsafe"
@@ -35,6 +36,19 @@ func (memory *Wasmer2Memory) Data() []byte {
 	header.Cap = int(length)
 
 	return *(*[]byte)(unsafe.Pointer(&header))
+}
+
+// ReadMemory returns a stable copy of the requested memory range.
+func (memory *Wasmer2Memory) ReadMemory(offset uint32, length uint32) ([]byte, error) {
+	data := memory.Data()
+	end := uint64(offset) + uint64(length)
+	if end > uint64(len(data)) {
+		return nil, errors.New("memory range out of bounds")
+	}
+
+	copied := make([]byte, length)
+	copy(copied, data[offset:uint32(end)])
+	return copied, nil
 }
 
 // Grow the memory by a number of pages (65kb each).

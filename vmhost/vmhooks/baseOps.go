@@ -496,6 +496,9 @@ func (context *VMHooksImpl) GetESDTTokenData(
 	}
 
 	value := managedType.GetBigIntOrCreate(valueHandle)
+	if esdtData.Value == nil {
+		esdtData.Value = big.NewInt(0)
+	}
 	value.Set(esdtData.Value)
 
 	err = context.MemStore(propertiesOffset, esdtData.Properties)
