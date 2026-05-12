@@ -3,7 +3,6 @@ package wasmer2
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"unsafe"
 
 	"github.com/multiversx/mx-chain-vm-go/executor"
@@ -25,29 +24,33 @@ func (memory *Wasmer2Memory) Length() uint32 {
 // Data returns a slice of bytes over the WebAssembly memory.
 // nolint
 func (memory *Wasmer2Memory) Data() []byte {
-	var length = memory.Length()
-	var data = (*uint8)(cWasmerMemoryData(memory.cgoInstance))
+	length := memory.Length()
+	data := (*uint8)(cWasmerMemoryData(memory.cgoInstance))
+	if data == nil || length == 0 {
+		return []byte{}
+	}
 
-	var header reflect.SliceHeader
-	header = *(*reflect.SliceHeader)(unsafe.Pointer(&header))
-
-	header.Data = uintptr(unsafe.Pointer(data))
-	header.Len = int(length)
-	header.Cap = int(length)
-
-	return *(*[]byte)(unsafe.Pointer(&header))
+	return unsafe.Slice(data, length)
 }
 
 // ReadMemory returns a stable copy of the requested memory range.
 func (memory *Wasmer2Memory) ReadMemory(offset uint32, length uint32) ([]byte, error) {
-	data := memory.Data()
 	end := uint64(offset) + uint64(length)
-	if end > uint64(len(data)) {
+	totalLen := memory.Length()
+	if end > uint64(totalLen) {
 		return nil, errors.New("memory range out of bounds")
+	}
+	if length == 0 {
+		return []byte{}, nil
+	}
+
+	data := (*uint8)(cWasmerMemoryData(memory.cgoInstance))
+	if data == nil {
+		return nil, errors.New("memory data pointer is nil")
 	}
 
 	copied := make([]byte, length)
-	copy(copied, data[offset:uint32(end)])
+	copy(copied, unsafe.Slice(data, totalLen)[offset:end])
 	return copied, nil
 }
 

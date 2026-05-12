@@ -34,6 +34,10 @@ var MaximumRuntimeInstanceStackSize = uint64(10)
 var _ vmhost.VMHost = (*vmHost)(nil)
 var _ scenexec.VMInterface = (*vmHost)(nil)
 
+type destroyableExecutor interface {
+	Destroy()
+}
+
 const minExecutionTimeout = time.Second
 const maxExecutionTimeout = 30 * time.Second
 const internalVMErrors = "internalVMErrors"
@@ -314,6 +318,9 @@ func (host *vmHost) close() {
 func (host *vmHost) Close() error {
 	host.mutExecution.Lock()
 	host.close()
+	if destroyable, ok := host.runtimeContext.GetVMExecutor().(destroyableExecutor); ok {
+		destroyable.Destroy()
+	}
 	host.closingInstance = true
 	host.mutExecution.Unlock()
 

@@ -40,6 +40,7 @@ func CreateExecutor() (*Wasmer2Executor, error) {
 	)
 
 	if result != cWasmerOk {
+		wasmerExecutor.Destroy()
 		return nil, newWrappedError(ErrFailedInstantiation)
 	}
 
@@ -70,6 +71,29 @@ func (wasmerExecutor *Wasmer2Executor) SetSIGSEGVPassthrough() {
 
 func (wasmerExecutor *Wasmer2Executor) FunctionNames() vmcommon.FunctionNames {
 	return functionNames
+}
+
+// Destroy releases C heap allocations owned by the executor.
+func (wasmerExecutor *Wasmer2Executor) Destroy() {
+	if wasmerExecutor == nil {
+		return
+	}
+	if wasmerExecutor.cgoExecutor != nil {
+		cWasmerExecutorDestroy(wasmerExecutor.cgoExecutor)
+		wasmerExecutor.cgoExecutor = nil
+	}
+	if wasmerExecutor.vmHookPointersStorage != nil {
+		cFree(wasmerExecutor.vmHookPointersStorage)
+		wasmerExecutor.vmHookPointersStorage = nil
+	}
+	if wasmerExecutor.vmHookPointers != nil {
+		cFree(unsafe.Pointer(wasmerExecutor.vmHookPointers))
+		wasmerExecutor.vmHookPointers = nil
+	}
+	if wasmerExecutor.vmHooksPtrStorage != nil {
+		cFree(wasmerExecutor.vmHooksPtrStorage)
+		wasmerExecutor.vmHooksPtrStorage = nil
+	}
 }
 
 // NewInstanceWithOptions creates a new Wasmer instance from WASM bytecode,
