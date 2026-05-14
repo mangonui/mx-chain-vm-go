@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"unsafe"
 
 	"github.com/multiversx/mx-chain-vm-go/executor"
@@ -22,6 +23,19 @@ type Wasmer2Instance struct {
 	memory Wasmer2Memory
 
 	AlreadyClean bool
+
+	// ISSUE-082: cleanMu serializes Clean() / IsAlreadyCleaned() / Reset()
+	// reads of AlreadyClean. Without the lock, two concurrent Clean() calls
+	// could both observe AlreadyClean=false and both call cWasmerInstanceDestroy.
+	// The Rust handle_registry absorbs the race today (HashMap::remove is
+	// idempotent), but relying on that is fragile if the Rust API contract
+	// ever tightens. Mutex was chosen over sync.Once to preserve the public
+	// AlreadyClean field for backward compat with tests at
+	// vmhost/contexts/instanceTracker_test.go:17,341 and
+	// mock/context/instanceMock.go that initialize the field via struct
+	// literal. Zero-value sync.Mutex is valid, so existing struct-literal
+	// initializers remain compatible.
+	cleanMu sync.Mutex
 }
 
 func emptyInstance() *Wasmer2Instance {
@@ -37,8 +51,16 @@ func newInstance(c_instance *cWasmerInstanceT) (*Wasmer2Instance, error) {
 	}, nil
 }
 
-// Clean cleans instance
+// Clean cleans instance.
+//
+// ISSUE-082: serialized via instance.cleanMu so two concurrent Clean() calls
+// cannot both observe AlreadyClean=false and both call cWasmerInstanceDestroy.
+// The Rust handle_registry is idempotent on double-destroy today, but
+// relying on that is fragile if the contract ever tightens.
 func (instance *Wasmer2Instance) Clean() bool {
+	instance.cleanMu.Lock()
+	defer instance.cleanMu.Unlock()
+
 	logWasmer2.Trace("cleaning instance", "id", instance.ID())
 	if instance.AlreadyClean {
 		logWasmer2.Trace("clean: already cleaned instance", "id", instance.ID())
@@ -57,8 +79,16 @@ func (instance *Wasmer2Instance) Clean() bool {
 	return false
 }
 
-// IsAlreadyCleaned returns the internal field AlreadyClean
+// IsAlreadyCleaned returns the internal field AlreadyClean.
+//
+// ISSUE-082: takes instance.cleanMu so concurrent reads are race-free under
+// the Go race detector. The lock is released before return, so the value
+// is a snapshot that can become stale immediately if another goroutine
+// calls Clean() after this returns — but that is the inherent semantic
+// of any "is X" predicate on shared mutable state.
 func (instance *Wasmer2Instance) IsAlreadyCleaned() bool {
+	instance.cleanMu.Lock()
+	defer instance.cleanMu.Unlock()
 	return instance.AlreadyClean
 }
 
@@ -104,7 +134,13 @@ func (instance *Wasmer2Instance) Cache() ([]byte, error) {
 
 	goBytes := C.GoBytes(unsafe.Pointer(cacheBytes), C.int(cacheLen))
 
-	C.free(unsafe.Pointer(cacheBytes))
+	// ISSUE-009: reclaim through the SAME allocator that produced this
+	// buffer (Rust's GlobalAlloc), via the dedicated `vm_exec_cache_free`
+	// export. The previous `C.free(unsafe.Pointer(cacheBytes))` only
+	// worked because Rust's default GlobalAlloc happens to match libc
+	// malloc; any future #[global_allocator] switch on the Rust side
+	// makes that pairing UB. See bridge2.go::cWasmerCacheFree doc-comment.
+	cWasmerCacheFree(cacheBytes, cacheLen)
 	cacheBytes = nil
 	return goBytes, nil
 }
@@ -156,6 +192,14 @@ func (instance *Wasmer2Instance) HasFunction(functionName string) bool {
 // GetLastError returns the last error message if any, otherwise returns an error.
 func (instance *Wasmer2Instance) getFunctionNamesConcat() (string, error) {
 	var bufferLength = cWasmerInstanceExportedFunctionNamesLength(instance.cgoInstance)
+
+	// ISSUE-008: the Rust side now signals overflow / null-instance with
+	// -1 (it was previously conflated with the 0-length "no functions"
+	// case). Detect the negative sentinel BEFORE allocating a buffer —
+	// make([]T, negative) would panic at runtime.
+	if bufferLength < 0 {
+		return "", errors.New("cannot read function names: length signal indicates error")
+	}
 
 	if bufferLength == 0 {
 		return "", nil
@@ -218,21 +262,59 @@ func (instance *Wasmer2Instance) MemGrow(pages uint32) error {
 }
 
 // MemDump yields the entire contents of the memory. Only used in tests.
+//
+// ISSUE-003: migrated from Wasmer2Memory.Data() (which returns an alias
+// over wasmer linear memory and dangles after memory.Grow) to
+// ReadMemory which returns a defensive copy with bounds checking.
+// MemDump callers always store the result for later inspection, so the
+// stable-copy semantics matter.
 func (instance *Wasmer2Instance) MemDump() []byte {
-	return instance.memory.Data()
+	length := instance.memory.Length()
+	if length == 0 {
+		return []byte{}
+	}
+	dump, err := instance.memory.ReadMemory(0, length)
+	if err != nil {
+		// MemDump is documented as test-only; an error here means
+		// something is fundamentally wrong with the wasmer memory
+		// state. Return an empty slice and let the test assertion
+		// surface the real failure.
+		return []byte{}
+	}
+	return dump
 }
 
-// Id returns an identifier for the instance, unique at runtime
+// Id returns an identifier for the instance, unique at runtime.
+//
+// ISSUE-087: post the ISSUE-001 Phase 2 handle-API redesign, cgoInstance is
+// no longer a real C heap pointer — it's an opaque small integer issued by
+// the Rust handle_registry's monotonic counter, reinterpreted as a pointer
+// for FFI wire compatibility. Formatting it as `%p` produced misleading
+// "0x1", "0x2" pointer-shaped strings in logs. Decimal format is more
+// honest for diagnostics. Map keys (instanceTracker.go) compare by string
+// equality, so the format change has no semantic impact on those callers.
 func (instance *Wasmer2Instance) ID() string {
-	return fmt.Sprintf("%p", instance.cgoInstance)
+	return fmt.Sprintf("%d", uintptr(unsafe.Pointer(instance.cgoInstance)))
 }
 
-// Reset resets the instance memories and globals
+// Reset resets the instance memories and globals.
+//
+// ISSUE-082: take instance.cleanMu only for the AlreadyClean READ at the
+// top, then release before calling cWasmerInstanceReset. Holding the lock
+// across the cgo call would risk deadlock against the Rust-side
+// reentrant call paths (the same class of bug as the previous Mutex<Box<dyn
+// InstanceLegacy>> attempt — see mx-vm-executor-rs ISSUE-001 history).
+// TOCTOU between the unlock and cWasmerInstanceReset is tolerated because
+// the Rust handle_registry is idempotent on operations against a destroyed
+// instance.
 func (instance *Wasmer2Instance) Reset() bool {
+	instance.cleanMu.Lock()
 	if instance.AlreadyClean {
+		instance.cleanMu.Unlock()
 		logWasmer2.Trace("reset: already cleaned instance", "id", instance.ID())
 		return false
 	}
+	instance.cleanMu.Unlock()
 
 	result := cWasmerInstanceReset(instance.cgoInstance)
 	ok := result == cWasmerOk
@@ -246,11 +328,28 @@ func (instance *Wasmer2Instance) IsInterfaceNil() bool {
 	return instance == nil
 }
 
-// SetVMHooksPtr sets the VM hooks pointer
+// SetVMHooksPtr is a no-op on Wasmer2Instance.
+//
+// ISSUE-083: the wasmer2 architecture stores the vmHooks pointer at the
+// EXECUTOR level (set via cWasmerExecutorContextDataSet in bridge2.go),
+// not per-instance. The legacy VMs (v1_2, v1_3, v1_4) have non-trivial
+// per-instance implementations because their architecture differs.
+//
+// This method exists only to satisfy the executor.Instance interface.
+// Callers that need to actually set the vmHooks pointer must operate on
+// the executor directly. There is at least one skipped test
+// (vmhost/hosttest/execution_test.go:322) that calls GetVMHooksPtr; for
+// that reason this method is documented as no-op rather than panic. If
+// the interface is later refactored to remove these methods from
+// executor.Instance, this stub can go.
 func (instance *Wasmer2Instance) SetVMHooksPtr(vmHooksPtr uintptr) {
+	// intentionally empty — vmHooks pointer lives on the executor, not the
+	// instance, in the wasmer2 architecture. See doc-comment above (ISSUE-083).
 }
 
-// GetVMHooksPtr returns the VM hooks pointer
+// GetVMHooksPtr returns 0 on Wasmer2Instance — see SetVMHooksPtr doc for
+// rationale. Callers that need the actual pointer must read it from the
+// executor, not the instance.
 func (instance *Wasmer2Instance) GetVMHooksPtr() uintptr {
 	return uintptr(0)
 }

@@ -121,6 +121,46 @@ func TestMeteringContext_BoundGasLimit(t *testing.T) {
 	require.Equal(t, BlockGasLimit, blockLimit)
 }
 
+// TestMeteringContext_BoundGasLimit_NegativeReturnsZero pins ISSUE-077.
+// Pre-fix: a negative int64 input was sign-extended to ~MaxUint64 by the
+// `uint64(value)` cast, then `gasLeft < MaxUint64` made the function
+// return gasLeft — turning "give me 0 gas" into "give me ALL available
+// gas." Post-fix: the new `if value <= 0 { return 0 }` guard at the top
+// of BoundGasLimit ensures negative input returns 0, matching the
+// natural reading of the function name.
+func TestMeteringContext_BoundGasLimit_NegativeReturnsZero(t *testing.T) {
+	t.Parallel()
+	const BlockGasLimit = uint64(15000)
+
+	mockRuntime := &contextmock.RuntimeContextMock{}
+	host := &contextmock.VMHostMock{
+		RuntimeContext: mockRuntime,
+	}
+	meteringCtx, _ := NewMeteringContext(host, config.MakeGasMapForTests(), BlockGasLimit)
+
+	gasProvided := uint64(10000)
+	meteringCtx.gasForExecution = gasProvided
+	mockRuntime.SetPointsUsed(0)
+
+	// ISSUE-077 attack value: -1
+	require.Equal(t, uint64(0), meteringCtx.BoundGasLimit(int64(-1)),
+		"BoundGasLimit(-1) MUST return 0 — pre-fix it returned gasLeft (~10000) due to int64→uint64 sign extension")
+
+	// Other negative values must also return 0
+	require.Equal(t, uint64(0), meteringCtx.BoundGasLimit(int64(-1000000)),
+		"BoundGasLimit(-1000000) MUST return 0")
+
+	// Zero must return 0 (the natural meaning of the function name)
+	require.Equal(t, uint64(0), meteringCtx.BoundGasLimit(int64(0)),
+		"BoundGasLimit(0) MUST return 0")
+
+	// Positive values must still bound by gasLeft (existing behavior unchanged)
+	require.Equal(t, uint64(5000), meteringCtx.BoundGasLimit(int64(5000)),
+		"BoundGasLimit(5000) MUST return 5000 — existing positive-input behavior must be unchanged")
+	require.Equal(t, meteringCtx.GasLeft(), meteringCtx.BoundGasLimit(int64(99999999)),
+		"BoundGasLimit(huge) MUST be bounded by gasLeft — existing behavior unchanged")
+}
+
 func TestMeteringContext_DeductInitialGasForExecution(t *testing.T) {
 	t.Parallel()
 

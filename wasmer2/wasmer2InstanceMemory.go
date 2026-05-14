@@ -22,6 +22,24 @@ func (memory *Wasmer2Memory) Length() uint32 {
 }
 
 // Data returns a slice of bytes over the WebAssembly memory.
+//
+// DEPRECATED — see issues/ISSUE-003.
+//
+// The returned slice is an alias over wasmer's linear memory, NOT a
+// copy. After any subsequent `memory.Grow()`, wasmer may reallocate the
+// backing buffer; the slice returned here then becomes a dangling
+// pointer that crashes or returns wrong-but-plausible bytes when the
+// caller next reads it. This is silent UAF.
+//
+// New callers MUST use [`Wasmer2Memory.ReadMemory`] instead, which
+// returns a defensive copy and bounds-checks the requested range. Existing
+// callers should migrate; the only in-tree user remaining is
+// [`Wasmer2Instance.MemDump`] which itself is documented as test-only and
+// has been migrated to ReadMemory in the same change set.
+//
+// This method is kept (rather than deleted) only so out-of-tree consumers
+// don't hard-break on import; they should migrate ASAP.
+//
 // nolint
 func (memory *Wasmer2Memory) Data() []byte {
 	length := memory.Length()

@@ -55,6 +55,16 @@ func (context *VMHooksImpl) Sha256(
 	enableEpochsHandler := context.host.EnableEpochsHandler()
 	metering := context.GetMeteringContext()
 
+	// ISSUE-085: reject negative length BEFORE the uint64 cast. Without
+	// this guard, uint64(int32(-1)) sign-extends to ~MaxUint64, which
+	// would either saturate the gas calc or produce a wrong metering
+	// value. The follow-up MemLoad already rejects negative length, so
+	// no buffer overrun is possible — this is a metering accuracy fix.
+	if length < 0 {
+		context.FailExecution(vmhost.ErrNegativeLength)
+		return 1
+	}
+
 	memLoadGas := math.MulUint64(metering.GasSchedule().BaseOperationCost.DataCopyPerByte, uint64(length))
 	gasToUse := math.AddUint64(metering.GasSchedule().CryptoAPICost.SHA256, memLoadGas)
 	err := metering.UseGasBoundedAndAddTracedGas(sha256Name, gasToUse)
@@ -137,6 +147,12 @@ func (context *VMHooksImpl) Keccak256(dataOffset executor.MemPtr, length executo
 	enableEpochsHandler := context.host.EnableEpochsHandler()
 	metering := context.GetMeteringContext()
 
+	// ISSUE-085: see Sha256 doc above for the negative-length-cast rationale.
+	if length < 0 {
+		context.FailExecution(vmhost.ErrNegativeLength)
+		return 1
+	}
+
 	memLoadGas := math.MulUint64(metering.GasSchedule().BaseOperationCost.DataCopyPerByte, uint64(length))
 	gasToUse := math.AddUint64(metering.GasSchedule().CryptoAPICost.Keccak256, memLoadGas)
 	err := metering.UseGasBoundedAndAddTracedGas(keccak256Name, gasToUse)
@@ -217,6 +233,12 @@ func (context *VMHooksImpl) Ripemd160(dataOffset executor.MemPtr, length executo
 	crypto := context.GetCryptoContext()
 	enableEpochsHandler := context.host.EnableEpochsHandler()
 	metering := context.GetMeteringContext()
+
+	// ISSUE-085: see Sha256 doc above for the negative-length-cast rationale.
+	if length < 0 {
+		context.FailExecution(vmhost.ErrNegativeLength)
+		return 1
+	}
 
 	memLoadGas := math.MulUint64(metering.GasSchedule().BaseOperationCost.DataCopyPerByte, uint64(length))
 	gasToUse := math.AddUint64(metering.GasSchedule().CryptoAPICost.Ripemd160, memLoadGas)
@@ -310,6 +332,13 @@ func (context *VMHooksImpl) VerifyBLS(
 	enableEpochsHandler := context.host.EnableEpochsHandler()
 	metering := context.GetMeteringContext()
 	metering.StartGasTracing(verifyBLSName)
+
+	// ISSUE-085: reject negative messageLength BEFORE the uint64 cast
+	// further down at the per-byte gas calc. See Sha256 for the rationale.
+	if messageLength < 0 {
+		context.FailExecution(vmhost.ErrNegativeLength)
+		return 1
+	}
 
 	gasToUse := metering.GasSchedule().CryptoAPICost.VerifyBLS
 	err := metering.UseGasBounded(gasToUse)
@@ -486,6 +515,12 @@ func (context *VMHooksImpl) VerifyEd25519(
 	metering := context.GetMeteringContext()
 	metering.StartGasTracing(verifyEd25519Name)
 
+	// ISSUE-085: reject negative messageLength BEFORE the uint64 cast.
+	if messageLength < 0 {
+		context.FailExecution(vmhost.ErrNegativeLength)
+		return 1
+	}
+
 	gasToUse := metering.GasSchedule().CryptoAPICost.VerifyEd25519
 	err := metering.UseGasBounded(gasToUse)
 	if err != nil {
@@ -621,6 +656,15 @@ func (context *VMHooksImpl) VerifyCustomSecp256k1(
 	enableEpochsHandler := context.host.EnableEpochsHandler()
 	metering := context.GetMeteringContext()
 	metering.StartGasTracing(verifyCustomSecp256k1Name)
+
+	// ISSUE-085: reject negative messageLength BEFORE the uint64 cast.
+	// (keyLength is validated separately below against the secp256k1
+	// compressed/uncompressed sizes, so it cannot be negative on the path
+	// that reaches the per-byte calc.)
+	if messageLength < 0 {
+		context.FailExecution(vmhost.ErrNegativeLength)
+		return 1
+	}
 
 	gasToUse := metering.GasSchedule().CryptoAPICost.VerifySecp256k1
 	err := metering.UseGasBounded(gasToUse)

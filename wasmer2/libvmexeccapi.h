@@ -4,6 +4,20 @@
 #include <stdlib.h>
 
 /**
+ * ABI version of the VM executor C API exposed by this crate. Increment
+ * on every breaking change to a `#[no_mangle] pub unsafe extern "C"`
+ * signature, struct layout, or semantic contract that crosses the FFI
+ * boundary into mx-chain-vm-go (or any other C-API consumer).
+ *
+ * Consumers should fetch this at process init via [`vm_exec_api_version`]
+ * and refuse to start on mismatch. See issues/ISSUE-020.
+ *
+ * History:
+ *   v1 — baseline (May 2026 audit pass).
+ */
+#define VM_EXEC_API_VERSION 1
+
+/**
  * The `wasmer_result_t` enum is a type that represents either a
  * success, or a failure.
  */
@@ -915,6 +929,48 @@ typedef struct vm_exec_vm_hook_c_func_pointers {
                                                              int32_t key_handle,
                                                              int32_t message_handle,
                                                              int32_t sig_handle);
+  void (*activate_unsafe_mode_func_ptr)(void *context);
+  void (*deactivate_unsafe_mode_func_ptr)(void *context);
+  int32_t (*managed_get_num_errors_func_ptr)(void *context);
+  void (*managed_get_error_with_index_func_ptr)(void *context, int32_t index, int32_t error_handle);
+  void (*managed_get_last_error_func_ptr)(void *context, int32_t error_handle);
+  int32_t (*managed_verify_groth16_func_ptr)(void *context,
+                                             int32_t curve_id,
+                                             int32_t proof_handle,
+                                             int32_t vk_handle,
+                                             int32_t pub_witness_handle);
+  int32_t (*managed_verify_plonk_func_ptr)(void *context,
+                                           int32_t curve_id,
+                                           int32_t proof_handle,
+                                           int32_t vk_handle,
+                                           int32_t pub_witness_handle);
+  int32_t (*managed_add_ec_func_ptr)(void *context,
+                                     int32_t curve_id,
+                                     int32_t group_id,
+                                     int32_t point1_handle,
+                                     int32_t point2_handle,
+                                     int32_t result_handle);
+  int32_t (*managed_mul_ec_func_ptr)(void *context,
+                                     int32_t curve_id,
+                                     int32_t group_id,
+                                     int32_t point_handle,
+                                     int32_t scalar_handle,
+                                     int32_t result_handle);
+  int32_t (*managed_multi_exp_ec_func_ptr)(void *context,
+                                           int32_t curve_id,
+                                           int32_t group_id,
+                                           int32_t points_handle,
+                                           int32_t scalars_handle,
+                                           int32_t result_handle);
+  int32_t (*managed_map_to_curve_ec_func_ptr)(void *context,
+                                              int32_t curve_id,
+                                              int32_t group_id,
+                                              int32_t element_handle,
+                                              int32_t result_handle);
+  int32_t (*managed_pairing_checks_ec_func_ptr)(void *context,
+                                                int32_t curve_id,
+                                                int32_t points_g1_handle,
+                                                int32_t points_g2_handle);
 } vm_exec_vm_hook_c_func_pointers;
 
 typedef struct vm_exec_compilation_options_t {
@@ -924,6 +980,13 @@ typedef struct vm_exec_compilation_options_t {
 typedef struct vm_exec_opcode_cost_t {
 
 } vm_exec_opcode_cost_t;
+
+/**
+ * Returns the ABI version of the linked vm-executor C API. Consumers
+ * must compare this against the version they were built against and
+ * refuse to operate on mismatch. See issues/ISSUE-020.
+ */
+uint32_t vm_exec_api_version(void);
 
 /**
  * Sets the runtime breakpoint value for the given instance.
@@ -1015,7 +1078,9 @@ enum vm_exec_result_t vm_exec_executor_set_vm_hooks_ptr(struct vm_exec_executor_
                                                         void *vm_hooks_ptr);
 
 /**
- * Destroys a VM executor object.
+ * Destroys a VM executor object. Safe under concurrent and repeated
+ * invocation because the incoming "pointer" is an opaque handle ID and
+ * the typed registry removes it at most once.
  *
  * # Safety
  *
@@ -1139,6 +1204,31 @@ void vm_exec_instance_destroy(struct vm_exec_instance_t *instance_ptr);
  * C API function, works with raw object pointers.
  */
 enum vm_exec_result_t vm_exec_instance_reset(struct vm_exec_instance_t *instance_ptr);
+
+/**
+ * Frees a cache buffer that was previously produced by
+ * [`vm_exec_instance_cache`].
+ *
+ * The cache function constructs a Rust `Vec<u8>` and hands its raw
+ * pointer + length to the C caller via `mem::forget`. Today the Go
+ * caller frees it with `C.free`, which only works because Rust's
+ * default `GlobalAlloc` happens to be the same system malloc that
+ * `libc::free` understands. Any future `#[global_allocator]` switch
+ * (jemallocator, mimalloc, custom) makes that pairing undefined
+ * behavior because the chunk metadata is allocator-specific.
+ *
+ * This export reclaims the Vec back through the SAME allocator that
+ * produced it, regardless of which global allocator is configured.
+ * The Go side should call this instead of `C.free` once the rebuilt
+ * `.so/.dylib` files include the symbol. See issues/ISSUE-009.
+ *
+ * # Safety
+ *
+ * `ptr` must be the exact pointer (and `len` the exact length) that
+ * `vm_exec_instance_cache` wrote into its out-params; otherwise
+ * `Vec::from_raw_parts` produces UB.
+ */
+void vm_exec_cache_free(uint8_t *ptr, uint32_t len);
 
 /**
  * Caches an instance.

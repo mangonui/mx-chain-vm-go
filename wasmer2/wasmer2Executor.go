@@ -1,6 +1,8 @@
 package wasmer2
 
 import (
+	"fmt"
+	"sync"
 	"unsafe"
 
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -8,6 +10,42 @@ import (
 )
 
 var _ executor.Executor = (*Wasmer2Executor)(nil)
+
+// expectedAPIVersion is the libvmexeccapi ABI version this Go bridge
+// was built against. ISSUE-020: must match the value compiled into the
+// linked .so/.dylib (via VM_EXEC_API_VERSION in lib.rs). On mismatch,
+// CreateExecutor returns an error instead of risking silent FFI
+// signature/layout drift from a stale lib paired with newer Go code.
+//
+// Bumping this:
+//   1. Bump VM_EXEC_API_VERSION in mx-vm-executor-rs/c-api/src/lib.rs
+//   2. Rebuild the .so + .dylib bundle (see mx-vm-executor-rs Makefile)
+//   3. Replace the .so/.dylib + libvmexeccapi.h in this directory
+//   4. Bump this constant
+const expectedAPIVersion uint32 = 1
+
+// apiVersionCheckOnce guards the version handshake so it only fires
+// once per process even if multiple wasmer2 executors are constructed.
+var apiVersionCheckOnce sync.Once
+
+// apiVersionCheckErr captures the result of the one-time handshake so
+// every subsequent CreateExecutor call returns the same error
+// deterministically (rather than only the first caller seeing it).
+var apiVersionCheckErr error
+
+// checkAPIVersion runs the once-per-process FFI ABI handshake. ISSUE-020.
+func checkAPIVersion() error {
+	apiVersionCheckOnce.Do(func() {
+		actual := cWasmerAPIVersion()
+		if actual != expectedAPIVersion {
+			apiVersionCheckErr = fmt.Errorf(
+				"libvmexeccapi ABI version mismatch: Go bridge built against v%d, "+
+					"linked .so/.dylib reports v%d — refresh either the bridge or the lib",
+				expectedAPIVersion, actual)
+		}
+	})
+	return apiVersionCheckErr
+}
 
 // Wasmer2Executor oversees the creation of Wasmer instances and execution.
 type Wasmer2Executor struct {
@@ -19,11 +57,34 @@ type Wasmer2Executor struct {
 	vmHooksPtr            uintptr
 	vmHooksPtrStorage     unsafe.Pointer
 
+	// ISSUE-011: vmHooksHandle is the registry handle for `vmHooks`.
+	// Stored alongside the legacy vmHooksPtr; the cgo set-data call
+	// publishes the handle (not the address) to wasmer, and the
+	// callback path resolves the handle via globalVMHooksRegistry.
+	// Released in Destroy.
+	vmHooksHandle        uint64
+	vmHooksHandleStorage unsafe.Pointer
+
 	opcodeCost *OpcodeCost
+
+	// destroyOnce makes Destroy idempotent under concurrent invocation.
+	// Without this, the nil-check + set-nil sequence below is a TOCTOU race:
+	// two goroutines could both pass the nil check and both call cFree /
+	// cWasmerExecutorDestroy on the same pointer, producing a C heap double
+	// free. See issues/ISSUE-014.
+	destroyOnce sync.Once
 }
 
 // CreateExecutor creates a new wasmer executor.
 func CreateExecutor() (*Wasmer2Executor, error) {
+	// ISSUE-020: ABI version handshake against the linked libvmexeccapi.
+	// Once-per-process; returns the same error on every subsequent call
+	// if the lib is stale. Fail-loud beats a silent layout/signature
+	// drift between the Go bridge and a forgotten older .so/.dylib.
+	if err := checkAPIVersion(); err != nil {
+		return nil, err
+	}
+
 	vmHookPointers := allocateVMHookPointers()
 	vmHookPointersStorage := cMalloc(unsafe.Sizeof(uintptr(0)))
 	*(*uintptr)(vmHookPointersStorage) = uintptr(unsafe.Pointer(vmHookPointers))
@@ -73,27 +134,47 @@ func (wasmerExecutor *Wasmer2Executor) FunctionNames() vmcommon.FunctionNames {
 	return functionNames
 }
 
-// Destroy releases C heap allocations owned by the executor.
+// Destroy releases C heap allocations owned by the executor. Safe to call
+// concurrently and safe to call more than once: the body runs at most once
+// thanks to destroyOnce. See issues/ISSUE-014.
 func (wasmerExecutor *Wasmer2Executor) Destroy() {
 	if wasmerExecutor == nil {
 		return
 	}
-	if wasmerExecutor.cgoExecutor != nil {
-		cWasmerExecutorDestroy(wasmerExecutor.cgoExecutor)
-		wasmerExecutor.cgoExecutor = nil
-	}
-	if wasmerExecutor.vmHookPointersStorage != nil {
-		cFree(wasmerExecutor.vmHookPointersStorage)
-		wasmerExecutor.vmHookPointersStorage = nil
-	}
-	if wasmerExecutor.vmHookPointers != nil {
-		cFree(unsafe.Pointer(wasmerExecutor.vmHookPointers))
-		wasmerExecutor.vmHookPointers = nil
-	}
-	if wasmerExecutor.vmHooksPtrStorage != nil {
-		cFree(wasmerExecutor.vmHooksPtrStorage)
-		wasmerExecutor.vmHooksPtrStorage = nil
-	}
+	wasmerExecutor.destroyOnce.Do(func() {
+		if wasmerExecutor.cgoExecutor != nil {
+			cWasmerExecutorDestroy(wasmerExecutor.cgoExecutor)
+			wasmerExecutor.cgoExecutor = nil
+		}
+		if wasmerExecutor.vmHookPointersStorage != nil {
+			cFree(wasmerExecutor.vmHookPointersStorage)
+			wasmerExecutor.vmHookPointersStorage = nil
+		}
+		if wasmerExecutor.vmHookPointers != nil {
+			cFree(unsafe.Pointer(wasmerExecutor.vmHookPointers))
+			wasmerExecutor.vmHookPointers = nil
+		}
+		if wasmerExecutor.vmHooksPtrStorage != nil {
+			cFree(wasmerExecutor.vmHooksPtrStorage)
+			wasmerExecutor.vmHooksPtrStorage = nil
+		}
+		// ISSUE-011: release the registry handle and free the C-side
+		// storage that held it. Order matters: free the C storage AFTER
+		// cWasmerExecutorDestroy so wasmer doesn't read freed memory if
+		// any in-flight callback is still executing. Releasing the
+		// handle from the registry AFTER cWasmerExecutorDestroy is also
+		// the safer order — once wasmer is torn down, no new callbacks
+		// can fire, so it's OK to make subsequent (impossible)
+		// callbacks panic-on-miss.
+		if wasmerExecutor.vmHooksHandleStorage != nil {
+			cFree(wasmerExecutor.vmHooksHandleStorage)
+			wasmerExecutor.vmHooksHandleStorage = nil
+		}
+		if wasmerExecutor.vmHooksHandle != 0 {
+			globalVMHooksRegistry.Release(wasmerExecutor.vmHooksHandle)
+			wasmerExecutor.vmHooksHandle = 0
+		}
+	})
 }
 
 // NewInstanceWithOptions creates a new Wasmer instance from WASM bytecode,
@@ -157,15 +238,53 @@ func (wasmerExecutor *Wasmer2Executor) IsInterfaceNil() bool {
 	return wasmerExecutor == nil
 }
 
-// InitVMHooks inits the VM hooks
+// InitVMHooks inits the VM hooks.
+//
+// ISSUE-011: post-fix, this method:
+//   1. Stores `vmHooks` on the executor (unchanged — kept alive by
+//      the executor reference for legacy compatibility).
+//   2. Registers `vmHooks` in the global registry, getting back a
+//      stable uint64 handle.
+//   3. Writes the HANDLE (not the address) into a C-allocated slot
+//      and publishes that slot to wasmer via the cgo set-data call.
+// The legacy `vmHooksPtr`/`vmHooksPtrStorage` machinery is kept
+// populated in parallel for diagnostic / rollback observability, but
+// wasmer no longer reads from it — `getVMHooksFromContextRawPtr` reads
+// the handle from `vmHooksHandleStorage` and does a registry lookup.
+//
+// Re-init: if called twice on the same executor (re-binding hooks),
+// the previous handle is released before a new one is registered, so
+// no handle leak.
 func (wasmerExecutor *Wasmer2Executor) initVMHooks(vmHooks executor.VMHooks) {
 	wasmerExecutor.vmHooks = vmHooks
+
+	// Legacy fields populated for backward compatibility; not consumed
+	// by the cgo callback after this fix.
 	wasmerExecutor.vmHooksPtr = uintptr(unsafe.Pointer(&wasmerExecutor.vmHooks))
 	if wasmerExecutor.vmHooksPtrStorage == nil {
 		wasmerExecutor.vmHooksPtrStorage = cMalloc(unsafe.Sizeof(uintptr(0)))
 	}
 	*(*uintptr)(wasmerExecutor.vmHooksPtrStorage) = wasmerExecutor.vmHooksPtr
-	cWasmerExecutorContextDataSet(wasmerExecutor.cgoExecutor, wasmerExecutor.vmHooksPtrStorage)
+
+	// Re-init: release any previously-held handle so we don't leak.
+	if wasmerExecutor.vmHooksHandle != 0 {
+		globalVMHooksRegistry.Release(wasmerExecutor.vmHooksHandle)
+		wasmerExecutor.vmHooksHandle = 0
+	}
+	wasmerExecutor.vmHooksHandle = globalVMHooksRegistry.Register(vmHooks)
+
+	// C-side storage for the handle: same pattern as vmHooksPtrStorage.
+	// uint64 fits in uintptr-sized slots on every platform Go supports.
+	if wasmerExecutor.vmHooksHandleStorage == nil {
+		wasmerExecutor.vmHooksHandleStorage = cMalloc(unsafe.Sizeof(uint64(0)))
+	}
+	*(*uint64)(wasmerExecutor.vmHooksHandleStorage) = wasmerExecutor.vmHooksHandle
+
+	// Publish the HANDLE storage (not the legacy address storage) to
+	// wasmer. This is the cgo flip: the callback path now reads a
+	// handle and resolves it via the registry instead of dereferencing
+	// a Go heap address through a uintptr.
+	cWasmerExecutorContextDataSet(wasmerExecutor.cgoExecutor, wasmerExecutor.vmHooksHandleStorage)
 }
 
 func (wasmerExecutor *Wasmer2Executor) extractOpcodeCost(wasmOps *executor.WASMOpcodeCost) *OpcodeCost {

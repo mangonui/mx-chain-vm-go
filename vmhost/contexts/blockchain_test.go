@@ -23,6 +23,39 @@ var testAccounts = []*worldmock.Account{
 	{Address: []byte("account_old_with_money"), Nonce: 56, Balance: big.NewInt(1024)},
 }
 
+func cloneTestAccounts() []*worldmock.Account {
+	cloned := make([]*worldmock.Account, len(testAccounts))
+	for i, account := range testAccounts {
+		accountClone := *account
+		accountClone.Address = append([]byte(nil), account.Address...)
+		accountClone.Code = append([]byte(nil), account.Code...)
+		accountClone.CodeHash = append([]byte(nil), account.CodeHash...)
+		accountClone.CodeMetadata = append([]byte(nil), account.CodeMetadata...)
+		accountClone.OwnerAddress = append([]byte(nil), account.OwnerAddress...)
+		accountClone.RootHash = append([]byte(nil), account.RootHash...)
+		accountClone.Username = append([]byte(nil), account.Username...)
+		if account.Storage != nil {
+			accountClone.Storage = make(map[string][]byte, len(account.Storage))
+			for key, value := range account.Storage {
+				accountClone.Storage[key] = append([]byte(nil), value...)
+			}
+		}
+		if account.Balance != nil {
+			accountClone.Balance = new(big.Int).Set(account.Balance)
+		}
+		if account.BalanceDelta != nil {
+			accountClone.BalanceDelta = new(big.Int).Set(account.BalanceDelta)
+		}
+		if account.DeveloperReward != nil {
+			accountClone.DeveloperReward = new(big.Int).Set(account.DeveloperReward)
+		}
+
+		cloned[i] = &accountClone
+	}
+
+	return cloned
+}
+
 func TestNewBlockchainContext(t *testing.T) {
 	t.Parallel()
 
@@ -39,7 +72,7 @@ func TestBlockchainContext_AccountExists(t *testing.T) {
 
 	host := &contextmock.VMHostStub{}
 	mockWorld := worldmock.NewMockWorld()
-	mockWorld.AcctMap.PutAccounts(testAccounts)
+	mockWorld.AcctMap.PutAccounts(cloneTestAccounts())
 
 	blockchainContext, _ := NewBlockchainContext(host, mockWorld)
 
@@ -55,7 +88,7 @@ func TestBlockchainContext_GetBalance(t *testing.T) {
 	t.Parallel()
 
 	mockWorld := worldmock.NewMockWorld()
-	mockWorld.AcctMap.PutAccounts(testAccounts)
+	mockWorld.AcctMap.PutAccounts(cloneTestAccounts())
 	mockOutput := &contextmock.OutputContextMock{}
 	host := &contextmock.VMHostMock{
 		EnableEpochsHandlerField: &worldmock.EnableEpochsHandlerStub{},
@@ -107,7 +140,7 @@ func TestBlockchainContext_GetBalance_Updates(t *testing.T) {
 	t.Parallel()
 
 	mockWorld := worldmock.NewMockWorld()
-	mockWorld.AcctMap.PutAccounts(testAccounts)
+	mockWorld.AcctMap.PutAccounts(cloneTestAccounts())
 	mockOutput := &contextmock.OutputContextMock{}
 	host := &contextmock.VMHostMock{
 		EnableEpochsHandlerField: &worldmock.EnableEpochsHandlerStub{},
@@ -170,7 +203,7 @@ func TestBlockchainContext_GetNonceAndIncrease(t *testing.T) {
 	host.OutputContext = mockOutput
 
 	mockWorld := worldmock.NewMockWorld()
-	mockWorld.AcctMap.PutAccounts(testAccounts)
+	mockWorld.AcctMap.PutAccounts(cloneTestAccounts())
 	blockchainContext, _ := NewBlockchainContext(host, mockWorld)
 
 	// GetNonce: Test if error is propagated from BlockchainHook, and that the
@@ -218,7 +251,7 @@ func TestBlockchainContext_GetCodeHashAndSize(t *testing.T) {
 	mockCrypto := &contextmock.CryptoHookMock{}
 
 	mockWorld := worldmock.NewMockWorld()
-	mockWorld.AcctMap.PutAccounts(testAccounts)
+	mockWorld.AcctMap.PutAccounts(cloneTestAccounts())
 
 	outputContext := &contextmock.OutputContextMock{}
 
@@ -287,7 +320,7 @@ func TestBlockchainContext_NewAddress(t *testing.T) {
 	mockOutput := &contextmock.OutputContextMock{}
 
 	mockWorld := worldmock.NewMockWorld()
-	mockWorld.AcctMap.PutAccounts(testAccounts)
+	mockWorld.AcctMap.PutAccounts(cloneTestAccounts())
 
 	mockRuntime := &contextmock.RuntimeContextMock{}
 	mockRuntime.VMType = []byte{0xF, 0xF}

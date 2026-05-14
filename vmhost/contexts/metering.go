@@ -154,9 +154,18 @@ func (context *meteringContext) cloneGasUsedByAccounts() map[string]uint64 {
 	return clone
 }
 
+// addToGasUsedByAccounts accumulates per-address gas usage.
+//
+// ISSUE-078: switched from raw `+=` to math.AddUint64 for pattern
+// consistency with the rest of the gas-accounting code. Practical
+// overflow requires ~10^10 accumulations on one account (unreachable
+// in any realistic chain lifetime), but the existing helper exists
+// for exactly this case. Saturation to MaxUint64 on overflow is the
+// safe failure mode here — an attacker triggering overflow gets the
+// maximum possible gas billed to them, which favors the chain.
 func (context *meteringContext) addToGasUsedByAccounts(gasUsed map[string]uint64) {
 	for address, gas := range gasUsed {
-		context.gasUsedByAccounts[address] += gas
+		context.gasUsedByAccounts[address] = math.AddUint64(context.gasUsedByAccounts[address], gas)
 	}
 }
 
@@ -425,7 +434,20 @@ func (context *meteringContext) GetSCPrepareInitialCost() uint64 {
 
 // BoundGasLimit returns the maximum between the provided amount and the gas
 // left on the currently running Wasmer instance.
+//
+// ISSUE-077: reject zero-or-negative `value` up-front. Without this guard, a
+// negative int64 (sign-extended to ~MaxUint64 via the cast below) compared
+// against gasLeft makes the function return gasLeft — turning "give me 0
+// gas" into "give me ALL available gas" for any negative input. Callers in
+// vmhooks (baseOps.go:3656, :3878) receive `value` directly from wasm
+// bytecode, so this semantics surprise is reachable from any deployed
+// contract. The new behavior: negative or zero returns 0, positive
+// returns min(value, gasLeft) — matching the natural reading of the
+// function name.
 func (context *meteringContext) BoundGasLimit(value int64) uint64 {
+	if value <= 0 {
+		return 0
+	}
 	gasLeft := context.GasLeft()
 	limit := uint64(value)
 

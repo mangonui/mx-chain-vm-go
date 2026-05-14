@@ -2702,15 +2702,34 @@ func (context *VMHooksImpl) WriteLog(
 	output := context.GetOutputContext()
 	metering := context.GetMeteringContext()
 
-	gasToUse := metering.GasSchedule().BaseOpsAPICost.Log
-	gas := math.MulUint64(metering.GasSchedule().BaseOperationCost.PersistPerByte, uint64(numTopics*vmhost.HashLen+dataLength))
-	gasToUse = math.AddUint64(gasToUse, gas)
-
+	// ISSUE-076: validate inputs BEFORE the gas calculation. The previous
+	// order (gas calc first, negative check second) computed
+	// `numTopics*vmhost.HashLen` as int32 multiplication, which wraps
+	// silently on overflow. The exact exploit value numTopics = 2^30
+	// produced a wrapped product of 0 (since 2^30*32 = 2^35 mod 2^32 = 0),
+	// the gas calc returned ~0, UseGasBounded passed, and the unbounded
+	// `make([][]byte, numTopics)` below allocated ~24 GiB → validator OOM.
+	// Bound numTopics by the same maxNumArgumentsFromMemory cap that
+	// getArgumentsFromMemory enforces elsewhere in this file.
 	if numTopics < 0 || dataLength < 0 {
-		err := vmhost.ErrNegativeLength
-		context.FailExecution(err)
+		context.FailExecution(vmhost.ErrNegativeLength)
 		return
 	}
+	if numTopics > maxNumArgumentsFromMemory {
+		context.FailExecution(fmt.Errorf("WriteLog: numTopics %d exceeds maximum %d",
+			numTopics, maxNumArgumentsFromMemory))
+		return
+	}
+
+	// Promote operands to uint64 BEFORE multiplying. uint64(numTopics) *
+	// uint64(HashLen) cannot overflow for int32 numTopics (max product =
+	// 2^31 * 32 = 2^36, fits uint64).
+	gasToUse := metering.GasSchedule().BaseOpsAPICost.Log
+	gas := math.MulUint64(
+		metering.GasSchedule().BaseOperationCost.PersistPerByte,
+		uint64(numTopics)*uint64(vmhost.HashLen)+uint64(dataLength),
+	)
+	gasToUse = math.AddUint64(gasToUse, gas)
 
 	err := metering.UseGasBoundedAndAddTracedGas(writeLogName, gasToUse)
 	if err != nil {
@@ -2751,6 +2770,29 @@ func (context *VMHooksImpl) WriteEventLog(
 	output := context.GetOutputContext()
 	metering := context.GetMeteringContext()
 
+	// ISSUE-081: pre-charge for the per-topic memory loads that
+	// getArgumentsFromMemory will perform BEFORE the call. Previously the
+	// helper performed up to maxNumArgumentsFromMemory (16M) MemLoad
+	// operations and allocated proportional Go slice headers before any
+	// gas was charged — bounded but unmetered DoS. Charging upfront for
+	// the per-topic length-array load (4 bytes per topic) closes the
+	// pre-load free-work window. The post-load charge below still
+	// accounts for the actual data bytes, so total gas charged is
+	// preLoadGas + Log + DataCopyPerByte*(topicDataTotalLen+dataLength).
+	if numTopics < 0 {
+		context.FailExecution(vmhost.ErrNegativeLength)
+		return
+	}
+	preLoadGas := math.MulUint64(
+		metering.GasSchedule().BaseOperationCost.DataCopyPerByte,
+		uint64(numTopics)*4, // 4 bytes per length-array entry
+	)
+	err := metering.UseGasBoundedAndAddTracedGas(writeEventLogName, preLoadGas)
+	if err != nil {
+		context.FailExecution(err)
+		return
+	}
+
 	topics, topicDataTotalLen, err := context.getArgumentsFromMemory(
 		host,
 		numTopics,
@@ -2769,9 +2811,19 @@ func (context *VMHooksImpl) WriteEventLog(
 	}
 
 	gasToUse := metering.GasSchedule().BaseOpsAPICost.Log
+	// ISSUE-081 (deeper fix): the previous form `uint64(topicDataTotalLen+dataLength)`
+	// performed int32 addition BEFORE the cast to uint64, mirroring the
+	// ISSUE-076 overflow class. Promote both operands to uint64 BEFORE
+	// adding so the sum cannot wrap. Both topicDataTotalLen and dataLength
+	// are bounded by previously-checked non-negative int32 values, so the
+	// uint64 cast is safe (no sign-extension concerns).
+	if topicDataTotalLen < 0 || dataLength < 0 {
+		context.FailExecution(vmhost.ErrNegativeLength)
+		return
+	}
 	gasForData := math.MulUint64(
 		metering.GasSchedule().BaseOperationCost.DataCopyPerByte,
-		uint64(topicDataTotalLen+dataLength))
+		math.AddUint64(uint64(topicDataTotalLen), uint64(dataLength)))
 	gasToUse = math.AddUint64(gasToUse, gasForData)
 	err = metering.UseGasBoundedAndAddTracedGas(writeEventLogName, gasToUse)
 	if err != nil {
@@ -3912,12 +3964,28 @@ func (context *VMHooksImpl) getArgumentsFromMemory(
 		return nil, 0, err
 	}
 
-	totalArgumentBytes := int32(0)
+	// ISSUE-081 (deeper fix): accumulate in int64 and overflow-check before
+	// returning. The previous int32 += silently wrapped if the sum of
+	// argument lengths exceeded ~2.1 billion. While each individual length
+	// is bounded by wasm linear memory, an attacker-chosen distribution of
+	// numArguments=16M arguments (the maxNumArgumentsFromMemory cap) with
+	// crafted length values could still produce a sum that wraps int32.
+	// Wrapping to a small positive value would let the downstream gas calc
+	// undercharge. Accumulating in int64 and checking against int32 max
+	// before truncating closes that vector.
+	const maxInt32AsInt64 int64 = 2147483647 // i.e., math.MaxInt32; local const to avoid stdlib-vs-vmgo math name collision in this file
+	totalArgumentBytes64 := int64(0)
 	for _, length := range argumentLengths {
-		totalArgumentBytes += length
+		if length < 0 {
+			return nil, 0, fmt.Errorf("negative argument length (%d)", length)
+		}
+		totalArgumentBytes64 += int64(length)
+		if totalArgumentBytes64 > maxInt32AsInt64 {
+			return nil, 0, fmt.Errorf("total argument bytes exceeds int32 max")
+		}
 	}
 
-	return data, totalArgumentBytes, nil
+	return data, int32(totalArgumentBytes64), nil
 }
 
 func createInt32Array(rawData []byte, numIntegers int32) []int32 {
