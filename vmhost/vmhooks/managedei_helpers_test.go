@@ -1,7 +1,11 @@
 package vmhooks
 
 import (
+	"encoding/hex"
 	"math"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,9 +14,70 @@ import (
 func TestCountDRWASyncOperations_ValidPayload(t *testing.T) {
 	t.Parallel()
 
-	count, ok := countDRWASyncOperations(buildValidDRWASyncPayload(3))
+	count, ok := countDRWASyncOperations(buildValidDRWASyncPayloadV1(3))
 	require.True(t, ok)
 	require.Equal(t, 3, count)
+}
+
+func TestCountDRWASyncOperations_ValidRecoveryPayload(t *testing.T) {
+	t.Parallel()
+
+	count, ok := countDRWASyncOperations(buildValidDRWASyncPayloadV2(2))
+	require.True(t, ok)
+	require.Equal(t, 2, count)
+}
+
+func TestCountDRWASyncOperations_AcceptsRustGeneratedFixtures(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		fixture       string
+		expectedCount int
+	}{
+		{
+			name:          "schema v1",
+			fixture:       "sync-envelope-v1.hex",
+			expectedCount: 1,
+		},
+		{
+			name:          "schema v2 recovery",
+			fixture:       "sync-envelope-v2-recovery.hex",
+			expectedCount: 2,
+		},
+		{
+			name:          "schema v1 all operation tags",
+			fixture:       "sync-envelope-v1-all-op-tags.hex",
+			expectedCount: 9,
+		},
+		{
+			name:          "schema v1 near payload cap",
+			fixture:       "sync-envelope-v1-near-cap.hex",
+			expectedCount: maxDRWASyncOps,
+		},
+	}
+
+	for _, testCase := range testCases {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			payload := readRustDRWASyncFixture(t, testCase.fixture)
+			count, ok := countDRWASyncOperations(payload)
+			require.True(t, ok)
+			require.Equal(t, testCase.expectedCount, count)
+		})
+	}
+}
+
+func TestCountDRWASyncOperations_RejectsUnsupportedSchemaVersion(t *testing.T) {
+	t.Parallel()
+
+	payload := makeDRWAHeader(3)
+
+	count, ok := countDRWASyncOperations(payload)
+	require.False(t, ok)
+	require.Zero(t, count)
 }
 
 func TestCountDRWASyncOperations_MalformedPayload(t *testing.T) {
@@ -26,7 +91,7 @@ func TestCountDRWASyncOperations_MalformedPayload(t *testing.T) {
 func TestCountDRWASyncOperations_RejectsTooManyOperations(t *testing.T) {
 	t.Parallel()
 
-	count, ok := countDRWASyncOperations(buildValidDRWASyncPayload(maxDRWASyncOps + 1))
+	count, ok := countDRWASyncOperations(buildValidDRWASyncPayloadV1(maxDRWASyncOps + 1))
 	require.False(t, ok)
 	require.Zero(t, count)
 }
@@ -35,6 +100,21 @@ func TestCountDRWASyncOperations_RejectsOversizedField(t *testing.T) {
 	t.Parallel()
 
 	count, ok := countDRWASyncOperations(buildOversizedFieldDRWASyncPayload())
+	require.False(t, ok)
+	require.Zero(t, count)
+}
+
+func TestCountDRWASyncOperations_RejectsInvalidOperationTag(t *testing.T) {
+	t.Parallel()
+
+	payload := makeDRWAHeader(1)
+	payload = append(payload, 9)
+	payload = appendLenPrefixed(payload, []byte("TOKEN-123"))
+	payload = appendLenPrefixed(payload, []byte("erd1holder"))
+	payload = append(payload, 0, 0, 0, 0, 0, 0, 0, 1)
+	payload = appendLenPrefixed(payload, []byte("body"))
+
+	count, ok := countDRWASyncOperations(payload)
 	require.False(t, ok)
 	require.Zero(t, count)
 }
@@ -61,32 +141,58 @@ func TestSafeMulUint64_NoOverflow(t *testing.T) {
 	require.Equal(t, uint64(63), result)
 }
 
-func buildValidDRWASyncPayload(numOps int) []byte {
-	payload := make([]byte, 33)
+func buildValidDRWASyncPayloadV1(numOps int) []byte {
+	payload := makeDRWAHeader(1)
 	for i := 0; i < numOps; i++ {
-		payload = append(payload, byte(i%3))
-		payload = appendLenPrefixed(payload, []byte("TOKEN-123"))
-		payload = appendLenPrefixed(payload, []byte("erd1holder"))
-		payload = append(payload, 0, 0, 0, 0, 0, 0, 0, byte(i+1))
-		payload = appendLenPrefixed(payload, []byte("body"))
+		payload = appendDRWASyncOperation(payload, byte(i%9), byte(i+1))
+	}
+
+	return payload
+}
+
+func buildValidDRWASyncPayloadV2(numOps int) []byte {
+	payload := makeDRWAHeader(2)
+	payload = appendLenPrefixed(payload, []byte("pre-recovery-state-hash"))
+	payload = append(payload, 0, 2)
+	payload = appendLenPrefixed(payload, []byte("TOKEN-111111"))
+	payload = appendLenPrefixed(payload, []byte("ASSET-222222"))
+	payload = append(payload, byte(numOps>>8), byte(numOps))
+	for i := 0; i < numOps; i++ {
+		payload = appendDRWASyncOperation(payload, byte(i%9), byte(i+1))
 	}
 
 	return payload
 }
 
 func buildMalformedDRWASyncPayload() []byte {
-	payload := make([]byte, 33)
+	payload := makeDRWAHeader(1)
 	payload = append(payload, 0x01)
 	payload = append(payload, 0, 0, 0, 5, 'b', 'a')
 	return payload
 }
 
 func buildOversizedFieldDRWASyncPayload() []byte {
-	payload := make([]byte, 33)
+	payload := makeDRWAHeader(1)
 	payload = append(payload, 0x01)
 	payload = appendLenPrefixed(payload, bytesOfLen(maxDRWASyncFieldLen+1))
 	payload = appendLenPrefixed(payload, []byte("erd1holder"))
 	payload = append(payload, 0, 0, 0, 0, 0, 0, 0, 1)
+	payload = appendLenPrefixed(payload, []byte("body"))
+	return payload
+}
+
+func makeDRWAHeader(schemaVersion byte) []byte {
+	payload := make([]byte, 32)
+	payload = append(payload, 0, schemaVersion)
+	payload = append(payload, 0)
+	return payload
+}
+
+func appendDRWASyncOperation(payload []byte, opTag byte, version byte) []byte {
+	payload = append(payload, opTag)
+	payload = appendLenPrefixed(payload, []byte("TOKEN-123"))
+	payload = appendLenPrefixed(payload, []byte("erd1holder"))
+	payload = append(payload, 0, 0, 0, 0, 0, 0, 0, version)
 	payload = appendLenPrefixed(payload, []byte("body"))
 	return payload
 }
@@ -109,4 +215,27 @@ func appendLenPrefixed(dst []byte, value []byte) []byte {
 	)
 	dst = append(dst, value...)
 	return dst
+}
+
+func readRustDRWASyncFixture(t *testing.T, fixtureName string) []byte {
+	t.Helper()
+
+	fixtureDir := os.Getenv("DRWA_SYNC_FIXTURE_DIR")
+	if fixtureDir == "" {
+		fixtureDir = filepath.Join(
+			"..", "..", "..",
+			"mx-sdk-rs", "contracts", "drwa", "common", "testdata", "drwa-sync-fixtures",
+		)
+	}
+	path := filepath.Join(fixtureDir, fixtureName)
+	contents, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		t.Skipf("DRWA sync fixture %q not available at %s; set DRWA_SYNC_FIXTURE_DIR in split-repo CI", fixtureName, path)
+	}
+	require.NoError(t, err)
+
+	payload, err := hex.DecodeString(strings.Join(strings.Fields(string(contents)), ""))
+	require.NoError(t, err)
+
+	return payload
 }

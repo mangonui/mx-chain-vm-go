@@ -1723,10 +1723,10 @@ func (context *VMHooksImpl) ManagedDRWASyncMirror(payloadHandle int32) int32 {
 	}
 
 	// Count operations in the payload to charge per-operation state-write gas.
-	// The envelope binary format is: [32-byte hash] || [caller_tag byte] || (op_tag + fields)*
-	// We count op-tag bytes (0x00, 0x01, 0x02) after offset 33 as a proxy for
-	// operation count.  Each write touches at minimum one trie node, so we
-	// charge StorageStore gas per operation.
+	// The envelope binary format is:
+	// [32-byte hash] || [schema_version:u16] || [caller_tag:u8] || payload.
+	// Each write touches at minimum one trie node, so we charge StorageStore
+	// gas per operation.
 	opCount, ok := countDRWASyncOperations(payload)
 	if !ok {
 		context.FailExecution(vmhost.ErrInvalidArgument)
@@ -1829,49 +1829,79 @@ func hasZeroDRWASyncHashPrefix(payload []byte) bool {
 }
 
 // countDRWASyncOperations counts the number of sync operations encoded in a
-// binary DRWA sync payload ([32-byte hash] || [caller_tag] || ops...).
-// It walks the canonical serialization format:
-//
-//	[op_tag u8] [token_id: u32-len-prefixed] [holder: u32-len-prefixed] [version u64] [body: u32-len-prefixed]
+// binary DRWA sync payload.
 func countDRWASyncOperations(payload []byte) (int, bool) {
-	const hashLen = 32
-	const callerTagLen = 1
-	const headerLen = hashLen + callerTagLen
+	const (
+		hashLen                     = 32
+		schemaVersionLen            = 2
+		callerTagLen                = 1
+		headerLen                   = hashLen + schemaVersionLen + callerTagLen
+		drwaSyncEnvelopeSchemaV1    = 1
+		drwaSyncEnvelopeSchemaV2    = 2
+		maxDRWASyncOperationTypeTag = 8
+		recoveryScopeCountLen       = 2
+		recoveryOperationCountLen   = 2
+	)
 
-	if len(payload) <= headerLen {
-		return 0, true
+	if len(payload) < headerLen {
+		return 0, false
+	}
+
+	schemaVersion := int(payload[hashLen])<<8 | int(payload[hashLen+1])
+	if schemaVersion != drwaSyncEnvelopeSchemaV1 && schemaVersion != drwaSyncEnvelopeSchemaV2 {
+		return 0, false
 	}
 
 	data := payload[headerLen:]
-	count := 0
-	for len(data) > 0 {
-		if count >= maxDRWASyncOps {
-			return 0, false
-		}
-		// op_tag (1 byte)
-		if len(data) < 1 {
-			return 0, false
-		}
-		data = data[1:]
-
-		// token_id: 4-byte length prefix + body
+	if schemaVersion == drwaSyncEnvelopeSchemaV2 {
 		var ok bool
 		data, ok = skipLenPrefixed(data)
 		if !ok {
 			return 0, false
 		}
-		// holder: 4-byte length prefix + body
-		data, ok = skipLenPrefixed(data)
-		if !ok {
+		if len(data) < recoveryScopeCountLen {
 			return 0, false
 		}
-		// version: 8 bytes
-		if len(data) < 8 {
+		scopeCount := int(data[0])<<8 | int(data[1])
+		data = data[recoveryScopeCountLen:]
+		for i := 0; i < scopeCount; i++ {
+			data, ok = skipLenPrefixed(data)
+			if !ok {
+				return 0, false
+			}
+		}
+		if len(data) < recoveryOperationCountLen {
 			return 0, false
 		}
-		data = data[8:]
-		// body: 4-byte length prefix + body
-		data, ok = skipLenPrefixed(data)
+		opCount := int(data[0])<<8 | int(data[1])
+		data = data[recoveryOperationCountLen:]
+		if opCount > maxDRWASyncOps {
+			return 0, false
+		}
+		for i := 0; i < opCount; i++ {
+			var ok bool
+			data, ok = skipDRWASyncOperation(data, maxDRWASyncOperationTypeTag)
+			if !ok {
+				return 0, false
+			}
+		}
+		if len(data) != 0 {
+			return 0, false
+		}
+		return opCount, true
+	}
+
+	if len(data) == 0 {
+		return 0, true
+	}
+
+	count := 0
+	for len(data) > 0 {
+		if count >= maxDRWASyncOps {
+			return 0, false
+		}
+		var ok bool
+		data, ok = skipDRWASyncOperation(data, maxDRWASyncOperationTypeTag)
 		if !ok {
 			return 0, false
 		}
@@ -1880,6 +1910,36 @@ func countDRWASyncOperations(payload []byte) (int, bool) {
 	}
 
 	return count, true
+}
+
+func skipDRWASyncOperation(data []byte, maxOperationTypeTag byte) ([]byte, bool) {
+	if len(data) < 1 {
+		return data, false
+	}
+	if data[0] > maxOperationTypeTag {
+		return data, false
+	}
+	data = data[1:]
+
+	var ok bool
+	data, ok = skipLenPrefixed(data)
+	if !ok {
+		return data, false
+	}
+	data, ok = skipLenPrefixed(data)
+	if !ok {
+		return data, false
+	}
+	if len(data) < 8 {
+		return data, false
+	}
+	data = data[8:]
+	data, ok = skipLenPrefixed(data)
+	if !ok {
+		return data, false
+	}
+
+	return data, true
 }
 
 func skipLenPrefixed(data []byte) ([]byte, bool) {

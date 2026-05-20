@@ -1,6 +1,7 @@
 package contexts
 
 import (
+	gomath "math"
 	"math/big"
 	"testing"
 
@@ -159,6 +160,23 @@ func TestMeteringContext_BoundGasLimit_NegativeReturnsZero(t *testing.T) {
 		"BoundGasLimit(5000) MUST return 5000 — existing positive-input behavior must be unchanged")
 	require.Equal(t, meteringCtx.GasLeft(), meteringCtx.BoundGasLimit(int64(99999999)),
 		"BoundGasLimit(huge) MUST be bounded by gasLeft — existing behavior unchanged")
+}
+
+func TestMeteringContext_AddToGasUsedByAccountsSaturates(t *testing.T) {
+	t.Parallel()
+	const BlockGasLimit = uint64(15000)
+
+	host := &contextmock.VMHostMock{}
+	meteringCtx, _ := NewMeteringContext(host, config.MakeGasMapForTests(), BlockGasLimit)
+
+	address := "addr"
+	meteringCtx.gasUsedByAccounts[address] = gomath.MaxUint64 - 1
+
+	meteringCtx.addToGasUsedByAccounts(map[string]uint64{
+		address: 2,
+	})
+
+	require.Equal(t, uint64(gomath.MaxUint64), meteringCtx.gasUsedByAccounts[address])
 }
 
 func TestMeteringContext_DeductInitialGasForExecution(t *testing.T) {
