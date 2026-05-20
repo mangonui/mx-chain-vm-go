@@ -1,0 +1,609 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-reserve-proof-registry",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "On-chain registry for VM0042 and GSOC reserve proof snapshots.",
+        "",
+        "Off-chain jobs compute the reserve state and anchor the resulting",
+        "snapshots here. Snapshot blocks must be strictly monotonic per token",
+        "or project."
+    ],
+    "name": "ReserveProofRegistry",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "governance",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "setGovernanceReadAddress",
+            "rustMethodName": "set_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearGovernanceReadAddress",
+            "rustMethodName": "clear_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Configures the canonical carbon-credit lifecycle contract used for",
+                "VM0042 supply reconciliation."
+            ],
+            "name": "setCarbonCreditAddr",
+            "rustMethodName": "set_carbon_credit_addr",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Configures the canonical buffer-pool reserve contract used for",
+                "VM0042 reserve reconciliation."
+            ],
+            "name": "setBufferPoolAddr",
+            "rustMethodName": "set_buffer_pool_addr",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Anchors a VM0042 reserve proof for a token at a given snapshot block."
+            ],
+            "name": "anchorReserveProof",
+            "rustMethodName": "anchor_reserve_proof",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "total_supply_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "total_buffer_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "total_retired_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "merkle_root",
+                    "type": "bytes"
+                },
+                {
+                    "name": "snapshot_block",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Anchors a GSOC reserve proof for a project at a given snapshot block."
+            ],
+            "name": "anchorGsocReserveProof",
+            "rustMethodName": "anchor_gsoc_reserve_proof",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "total_issued",
+                    "type": "u64"
+                },
+                {
+                    "name": "total_retired",
+                    "type": "u64"
+                },
+                {
+                    "name": "serial_count",
+                    "type": "u64"
+                },
+                {
+                    "name": "itmo_serial_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "snapshot_block",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getReserveProof",
+            "rustMethodName": "get_reserve_proof",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "snapshot_block",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<ReserveProof>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getLatestReserveProof",
+            "rustMethodName": "get_latest_reserve_proof",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<ReserveProof>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Verifies that a holder balance belongs to the anchored VM0042 reserve",
+                "snapshot Merkle root for the given token and snapshot block.",
+                "",
+                "The proof matches the current off-chain cadence contract exactly:",
+                "leaves are `sha256(0x00 || \"{index}:{holder_address}:{balance_scaled}\")`,",
+                "and parent nodes hash `0x01` followed by the lexicographically sorted",
+                "lowercase hex child hashes concatenated as ASCII."
+            ],
+            "name": "verifyHolderSnapshot",
+            "rustMethodName": "verify_holder_snapshot",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "snapshot_block",
+                    "type": "u64"
+                },
+                {
+                    "name": "leaf_index",
+                    "type": "u64"
+                },
+                {
+                    "name": "holder_address",
+                    "type": "bytes"
+                },
+                {
+                    "name": "balance_scaled",
+                    "type": "bytes"
+                },
+                {
+                    "name": "merkle_proof",
+                    "type": "List<bytes>"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getGsocReserveProof",
+            "rustMethodName": "get_gsoc_reserve_proof",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "snapshot_block",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<GsocReserveProof>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getLatestGsocReserveProof",
+            "rustMethodName": "get_latest_gsoc_reserve_proof",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<GsocReserveProof>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getCanonicalGsocSerialInventoryHash",
+            "rustMethodName": "get_canonical_gsoc_serial_inventory_hash_view",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "verifyGsocSerialInventoryHash",
+            "rustMethodName": "verify_gsoc_serial_inventory_hash",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "expected_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getCarbonCreditAddr",
+            "rustMethodName": "carbon_credit_addr",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getBufferPoolAddr",
+            "rustMethodName": "buffer_pool_addr",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getGovernanceReadAddress",
+            "rustMethodName": "governance_read_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes the initial governance address during bootstrap, or rotates",
+                "governance when called by the currently active governance address."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Cancels bootstrap-time pending governance only while no active",
+                "governance has yet been accepted. Once governance is active, control is",
+                "irreversible and cannot be revoked back to owner-only."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        }
+    ],
+    "events": [
+        {
+            "identifier": "reserveProofAnchored",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "merkle_root",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "snapshot_block",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "identifier": "gsocReserveProofAnchored",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "itmo_serial_hash",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "snapshot_block",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "identifier": "governanceReadAddressUpdated",
+            "inputs": [
+                {
+                    "name": "governance_read_address",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "governanceReadAddressCleared",
+            "inputs": []
+        },
+        {
+            "identifier": "carbonCreditAddrUpdated",
+            "inputs": [
+                {
+                    "name": "carbon_credit_addr",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "bufferPoolAddrUpdated",
+            "inputs": [
+                {
+                    "name": "buffer_pool_addr",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "GsocReserveProof": {
+            "type": "struct",
+            "docs": [
+                "Reserve proof for the GSOC track."
+            ],
+            "fields": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "total_issued",
+                    "type": "u64"
+                },
+                {
+                    "name": "total_retired",
+                    "type": "u64"
+                },
+                {
+                    "name": "net_active",
+                    "type": "u64"
+                },
+                {
+                    "name": "serial_count",
+                    "type": "u64"
+                },
+                {
+                    "name": "itmo_serial_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "snapshot_block",
+                    "type": "u64"
+                },
+                {
+                    "name": "anchored_at",
+                    "type": "u64"
+                }
+            ]
+        },
+        "ReserveProof": {
+            "type": "struct",
+            "docs": [
+                "Reserve proof for the VM0042 track."
+            ],
+            "fields": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "total_supply_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "total_buffer_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "total_retired_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "net_circulating_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "merkle_root",
+                    "type": "bytes"
+                },
+                {
+                    "name": "snapshot_block",
+                    "type": "u64"
+                },
+                {
+                    "name": "anchored_at",
+                    "type": "u64"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,447 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-come-settlement",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "COME settlement contract with per-settlement escrow accounting.",
+        "",
+        "Settlements move through `pending`, `funded`, `settled`, `cancelled`, and",
+        "`expired` states.",
+        "Funding records the escrowed token amount and sets an expiry round.",
+        "Execution transfers only the escrow recorded for the referenced settlement."
+    ],
+    "name": "ComeSettlement",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "governance",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "setGovernanceReadAddress",
+            "rustMethodName": "set_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearGovernanceReadAddress",
+            "rustMethodName": "clear_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Creates a settlement instruction in `pending` state without moving funds."
+            ],
+            "name": "createSettlement",
+            "rustMethodName": "create_settlement",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "from",
+                    "type": "Address"
+                },
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "name": "amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "reason_cid",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Funds a pending settlement with the exact token and amount required for execution.",
+                "",
+                "Only the payer recorded in the settlement may fund it."
+            ],
+            "name": "fundSettlement",
+            "rustMethodName": "fund_settlement",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Executes a funded settlement.",
+                "",
+                "This transfers the escrowed ESDT payment to the recorded recipient."
+            ],
+            "name": "executeSettlement",
+            "rustMethodName": "execute_settlement",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Cancels a pending or funded settlement.",
+                "",
+                "When the settlement is already funded, the escrowed tokens are returned",
+                "to the payer."
+            ],
+            "name": "cancelSettlement",
+            "rustMethodName": "cancel_settlement",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "cancel_reason_cid",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Re-encodes settlement records to include the `expiry_round` field",
+                "added post-migration. Re-inserting already migrated records is a no-op."
+            ],
+            "name": "migrateSettlements",
+            "rustMethodName": "migrate_settlements",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "settlement_ids",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Expires a funded settlement after its expiry round and refunds the",
+                "escrowed tokens to the payer.",
+                "Any caller may trigger the expiry once the round check passes."
+            ],
+            "name": "expireSettlement",
+            "rustMethodName": "expire_settlement",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getSettlement",
+            "rustMethodName": "get_settlement",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<SettlementRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getGovernanceReadAddress",
+            "rustMethodName": "governance_read_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes the initial governance address during bootstrap, or rotates",
+                "governance when called by the currently active governance address."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Cancels bootstrap-time pending governance only while no active",
+                "governance has yet been accepted. Once governance is active, control is",
+                "irreversible and cannot be revoked back to owner-only."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        }
+    ],
+    "events": [
+        {
+            "identifier": "settlementFunded",
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "funder",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "settlementCreated",
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "from",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "to",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "settlementExecuted",
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "settlementCancelled",
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emitted when a funded settlement expires and its escrow is refunded."
+            ],
+            "identifier": "settlementExpired",
+            "inputs": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "SettlementRecord": {
+            "type": "struct",
+            "docs": [
+                "Per-settlement escrow record following a `pending -> funded -> settled` lifecycle."
+            ],
+            "fields": [
+                {
+                    "name": "settlement_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "from",
+                    "type": "Address"
+                },
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "name": "amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "status",
+                    "type": "u8"
+                },
+                {
+                    "name": "reason_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "cancel_reason_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "created_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "settled_at",
+                    "type": "u64"
+                },
+                {
+                    "docs": [
+                        "Block round after which the settlement can be expired and refunded.",
+                        "Zero for pre-migration records or settlements still in pending state."
+                    ],
+                    "name": "expiry_round",
+                    "type": "u64"
+                }
+            ]
+        }
+    }
+}

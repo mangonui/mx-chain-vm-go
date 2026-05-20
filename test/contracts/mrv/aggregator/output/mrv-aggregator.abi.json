@@ -1,0 +1,805 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-aggregator",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Oracle aggregator contract for MRV monitoring periods.",
+        "",
+        "Collects IoT, Satellite, and Government Lab readings, enforces a",
+        "configurable quorum, detects semantic divergence between IoT and",
+        "Satellite sources, and seals monitoring periods into a deterministic",
+        "MRV root hash."
+    ],
+    "name": "MrvAggregator",
+    "constructor": {
+        "docs": [
+            "Initializes quorum, per-source coherence windows, and divergence",
+            "threshold. Zero values fall back to built-in defaults."
+        ],
+        "inputs": [
+            {
+                "name": "quorum",
+                "type": "u32"
+            },
+            {
+                "name": "iot_window",
+                "type": "u64"
+            },
+            {
+                "name": "satellite_window",
+                "type": "u64"
+            },
+            {
+                "name": "govt_lab_window",
+                "type": "u64"
+            },
+            {
+                "name": "divergence_threshold_bps",
+                "type": "u64"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "docs": [
+            "Upgrades storage layout version if needed and preserves existing state."
+        ],
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "setGovernanceReadAddress",
+            "rustMethodName": "set_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearGovernanceReadAddress",
+            "rustMethodName": "clear_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Submits a reading for a PAI monitoring period from an authorized source.",
+                "",
+                "SECURITY-BOUNDARY: IoT readings must carry an Ed25519 signature over the",
+                "domain-separated reading payload. The public key is configured through",
+                "`registerDevicePublicKey` and keyed by `device_did`.",
+                "",
+                "`device_did` may be the zero address for non-IoT sources. IoT",
+                "submissions require a registered device and a non-empty",
+                "`device_signature`.",
+                "",
+                "For IoT readings, this endpoint rejects unsigned or incorrectly signed",
+                "payloads before the reading can contribute to quorum or MRV root sealing."
+            ],
+            "name": "submitOracleReading",
+            "rustMethodName": "submit_oracle_reading",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "period_start",
+                    "type": "u64"
+                },
+                {
+                    "name": "period_end",
+                    "type": "u64"
+                },
+                {
+                    "name": "source",
+                    "type": "u8"
+                },
+                {
+                    "name": "data_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "source_timestamp",
+                    "type": "u64"
+                },
+                {
+                    "name": "device_did",
+                    "type": "Address"
+                },
+                {
+                    "name": "device_signature",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Attempts to seal a monitoring period once quorum is satisfied."
+            ],
+            "name": "trySeal",
+            "rustMethodName": "try_seal",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "period_end",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Seals a period after the longest coherence window has elapsed, even if",
+                "the configured quorum was not reached.",
+                "",
+                "This timeout path still requires at least the protocol minimum number",
+                "of readings (`QUORUM_MIN`). It must never seal from a single reading,",
+                "and it must not canonize a semantic discrepancy. Missing or divergent",
+                "IoT/Satellite readings require off-chain/governance remediation rather",
+                "than a timeout seal."
+            ],
+            "name": "forceSealAfterTimeout",
+            "rustMethodName": "force_seal_after_timeout",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "period_end",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "VVB or governance acknowledges a semantic discrepancy between IoT and",
+                "Satellite readings, allowing sealing to proceed despite divergence.",
+                "Verifier authorization is managed separately from oracle authorization."
+            ],
+            "name": "acknowledgeDiscrepancy",
+            "rustMethodName": "acknowledge_discrepancy",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "period_end",
+                    "type": "u64"
+                },
+                {
+                    "name": "acknowledgement_cid",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Updates the minimum oracle reading quorum."
+            ],
+            "name": "setQuorum",
+            "rustMethodName": "set_quorum",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "quorum",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Updates per-source coherence windows."
+            ],
+            "name": "setCoherenceWindows",
+            "rustMethodName": "set_coherence_windows",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "iot_window",
+                    "type": "u64"
+                },
+                {
+                    "name": "satellite_window",
+                    "type": "u64"
+                },
+                {
+                    "name": "govt_lab_window",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Adds an address to the authorized oracle set."
+            ],
+            "name": "registerOracle",
+            "rustMethodName": "register_oracle",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "oracle",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Removes an address from the authorized oracle set."
+            ],
+            "name": "deregisterOracle",
+            "rustMethodName": "deregister_oracle",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "oracle",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isOracleAuthorized",
+            "rustMethodName": "is_oracle_authorized",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "oracle",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Grants one source type to an oracle. This allows governance to use",
+                "least-privilege oracle identities instead of treating every registered",
+                "oracle as valid for IoT, satellite, and government lab evidence.",
+                "",
+                "Upgrade note: an oracle present in the legacy `authorized_oracles` set",
+                "with no source rows is materialized to all known sources before applying",
+                "a source-specific change. This preserves pre-upgrade reachability while",
+                "making subsequent revocation explicit and auditable per source."
+            ],
+            "name": "registerOracleForSource",
+            "rustMethodName": "register_oracle_for_source",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "oracle",
+                    "type": "Address"
+                },
+                {
+                    "name": "source",
+                    "type": "u8"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "revokeOracleSource",
+            "rustMethodName": "revoke_oracle_source",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "oracle",
+                    "type": "Address"
+                },
+                {
+                    "name": "source",
+                    "type": "u8"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isOracleSourceAuthorized",
+            "rustMethodName": "is_oracle_source_authorized",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "oracle",
+                    "type": "Address"
+                },
+                {
+                    "name": "source",
+                    "type": "u8"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Adds an address to the authorized verifier set."
+            ],
+            "name": "registerVerifier",
+            "rustMethodName": "register_verifier",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Removes an address from the authorized verifier set."
+            ],
+            "name": "deregisterVerifier",
+            "rustMethodName": "deregister_verifier",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isVerifierAuthorized",
+            "rustMethodName": "is_verifier_authorized",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Legacy endpoint retained for ABI compatibility.",
+                "",
+                "IoT reading validation requires an Ed25519 public key, so callers must",
+                "use `registerDevicePublicKey`. Storing address bytes as a public key",
+                "would make the device unusable and could clobber a valid key."
+            ],
+            "name": "registerDevice",
+            "rustMethodName": "register_device",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "_device_did",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Registers a device identity with its Ed25519 public key."
+            ],
+            "name": "registerDevicePublicKey",
+            "rustMethodName": "register_device_public_key",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "device_did",
+                    "type": "Address"
+                },
+                {
+                    "name": "ed25519_public_key",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Removes a device identity."
+            ],
+            "name": "deregisterDevice",
+            "rustMethodName": "deregister_device",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "device_did",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isDeviceRegistered",
+            "rustMethodName": "is_device_registered",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "device_did",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes replacing an existing oracle with a substitute, scoped to",
+                "a time window (`scope_end_epoch`)."
+            ],
+            "name": "proposeOracleUpdate",
+            "rustMethodName": "propose_oracle_update",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "current_oracle",
+                    "type": "Address"
+                },
+                {
+                    "name": "proposed_oracle",
+                    "type": "Address"
+                },
+                {
+                    "name": "scope_end_epoch",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending oracle rotation. Only the proposed oracle may call this."
+            ],
+            "name": "acceptOracleUpdate",
+            "rustMethodName": "accept_oracle_update",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "current_oracle",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Removes an expired oracle proposal. Any caller may trigger this",
+                "once the proposal's scope_end_epoch has passed."
+            ],
+            "name": "cancelExpiredProposal",
+            "rustMethodName": "cancel_expired_proposal",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "current_oracle",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getSealedEvent",
+            "rustMethodName": "get_sealed_event",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "period_end",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<SealedEvent>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "isSealed",
+            "rustMethodName": "is_sealed",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "period_end",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getGovernanceReadAddress",
+            "rustMethodName": "governance_read_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes the initial governance address during bootstrap, or rotates",
+                "governance when called by the currently active governance address."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Cancels bootstrap-time pending governance only while no active",
+                "governance has yet been accepted. Once governance is active, control is",
+                "irreversible and cannot be revoked back to owner-only."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        }
+    ],
+    "events": [
+        {
+            "identifier": "oracleReadingSubmitted",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "data_cid",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "device_did",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "eventSealed",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "mrv_root",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "discrepancyAcknowledged",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "forceSealed",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "mrv_root",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "oracleUpdateProposed",
+            "inputs": [
+                {
+                    "name": "current_oracle",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "proposed_oracle",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "scope_end_epoch",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "identifier": "oracleUpdateAccepted",
+            "inputs": [
+                {
+                    "name": "replaced_oracle",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "new_oracle",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "SealedEvent": {
+            "type": "struct",
+            "docs": [
+                "Sealed monitoring-period record containing the computed MRV root."
+            ],
+            "fields": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "period_end",
+                    "type": "u64"
+                },
+                {
+                    "name": "mrv_root",
+                    "type": "bytes"
+                },
+                {
+                    "name": "reading_count",
+                    "type": "u32"
+                },
+                {
+                    "name": "semantic_discrepancy",
+                    "type": "bool"
+                },
+                {
+                    "name": "sealed_at",
+                    "type": "u64"
+                }
+            ]
+        }
+    }
+}

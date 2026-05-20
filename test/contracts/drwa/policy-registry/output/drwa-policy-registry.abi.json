@@ -1,0 +1,610 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "drwa-policy-registry",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Manages per-token compliance policies (pause, auditor mode, investor-class",
+        "and jurisdiction allow-lists) and syncs policy state to the native DRWA",
+        "mirror on every mutation.",
+        "",
+        "Governance is transferable via a propose-accept pattern with a time-limited",
+        "acceptance window."
+    ],
+    "name": "DrwaPolicyRegistry",
+    "constructor": {
+        "docs": [
+            "Initializes the contract with the governance address."
+        ],
+        "inputs": [
+            {
+                "name": "governance",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "docs": [
+            "Upgrades storage layout version if needed and preserves existing state."
+        ],
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "docs": [
+                "Creates or updates a token policy, increments its version, and syncs it",
+                "to the native mirror.",
+                "",
+                "Access is limited to the governance address or the contract owner.",
+                "Reverts if the token identifier is invalid or the input lists exceed the",
+                "configured maximum sizes."
+            ],
+            "name": "setTokenPolicy",
+            "rustMethodName": "set_token_policy",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "drwa_enabled",
+                    "type": "bool"
+                },
+                {
+                    "name": "global_pause",
+                    "type": "bool"
+                },
+                {
+                    "name": "strict_auditor_mode",
+                    "type": "bool"
+                },
+                {
+                    "name": "metadata_protection_enabled",
+                    "type": "bool"
+                },
+                {
+                    "name": "allowed_investor_classes",
+                    "type": "List<bytes>"
+                },
+                {
+                    "name": "allowed_jurisdictions",
+                    "type": "List<bytes>"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Deactivates an existing token policy by setting `drwa_enabled = false`,",
+                "incrementing its version, and syncing the update to the native mirror.",
+                "",
+                "Access is limited to the governance address or the contract owner.",
+                "Reverts if the token policy does not exist."
+            ],
+            "name": "deactivateTokenPolicy",
+            "rustMethodName": "deactivate_token_policy",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Maps a token identifier to its full compliance policy."
+            ],
+            "name": "getTokenPolicy",
+            "rustMethodName": "token_policy",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaTokenPolicy"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Monotonically increasing version counter per token, used for staleness",
+                "detection."
+            ],
+            "name": "getTokenPolicyVersion",
+            "rustMethodName": "token_policy_version",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Sets the IPFS CID of the MiCA white paper for a regulated token and",
+                "syncs the updated policy to the native mirror.",
+                "",
+                "CID format: must start with \"Qm\" (CIDv0) or \"bafy\" (CIDv1) and be",
+                "46-64 bytes long. Access is limited to governance or owner."
+            ],
+            "name": "setWhitePaperCid",
+            "rustMethodName": "set_white_paper_cid",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "cid",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Sets the MiCA registration status for a regulated token and syncs",
+                "the update to the native mirror.",
+                "",
+                "Valid statuses: `draft`, `submitted`, `approved`, `rejected`, `withdrawn`."
+            ],
+            "name": "setRegistrationStatus",
+            "rustMethodName": "set_registration_status",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "status",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Returns the white paper CID for a token, or empty if not set."
+            ],
+            "name": "getWhitePaperCid",
+            "rustMethodName": "get_white_paper_cid",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Returns the registration status for a token, or empty if not set."
+            ],
+            "name": "getRegistrationStatus",
+            "rustMethodName": "get_registration_status",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes a new governance address and starts the acceptance window."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window",
+                "expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Revokes the current governance address, clearing all governance and",
+                "pending governance state. Once governance is configured, only that",
+                "governance address may call this endpoint."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "The active governance address authorized to manage compliance state."
+            ],
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "The proposed governance address awaiting acceptance."
+            ],
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "docs": [
+                "Emits when a token policy is created or updated."
+            ],
+            "identifier": "drwaTokenPolicy",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "drwa_enabled",
+                    "type": "bool",
+                    "indexed": true
+                },
+                {
+                    "name": "global_pause",
+                    "type": "bool",
+                    "indexed": true
+                },
+                {
+                    "name": "strict_auditor_mode",
+                    "type": "bool",
+                    "indexed": true
+                },
+                {
+                    "name": "token_policy_version",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when a white paper CID is set for a token."
+            ],
+            "identifier": "drwaWhitePaperCidSet",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "cid",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when a registration status is set for a token."
+            ],
+            "identifier": "drwaRegistrationStatusSet",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "status",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when a new governance address is proposed."
+            ],
+            "identifier": "drwaGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when a pending governance address accepts the role."
+            ],
+            "identifier": "drwaGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when the governance address is revoked by the owner."
+            ],
+            "identifier": "drwaGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous_governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "DrwaCallerDomain": {
+            "type": "enum",
+            "docs": [
+                "Identifies the contract domain that produced a sync envelope."
+            ],
+            "variants": [
+                {
+                    "name": "PolicyRegistry",
+                    "discriminant": 0
+                },
+                {
+                    "name": "AssetManager",
+                    "discriminant": 1
+                },
+                {
+                    "name": "IdentityRegistry",
+                    "discriminant": 2
+                },
+                {
+                    "name": "Attestation",
+                    "discriminant": 3
+                },
+                {
+                    "name": "RecoveryAdmin",
+                    "discriminant": 4
+                },
+                {
+                    "name": "AuthAdmin",
+                    "discriminant": 5
+                }
+            ]
+        },
+        "DrwaSyncEnvelope": {
+            "type": "struct",
+            "docs": [
+                "Wraps the caller domain, payload hash, and batched operations for mirror sync."
+            ],
+            "fields": [
+                {
+                    "name": "schema_version",
+                    "type": "u16"
+                },
+                {
+                    "name": "caller_domain",
+                    "type": "DrwaCallerDomain"
+                },
+                {
+                    "name": "payload_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "operations",
+                    "type": "List<DrwaSyncOperation>"
+                },
+                {
+                    "name": "pre_recovery_state_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "recovery_scope",
+                    "type": "List<bytes>"
+                }
+            ]
+        },
+        "DrwaSyncOperation": {
+            "type": "struct",
+            "docs": [
+                "Carries a single versioned sync operation inside an envelope."
+            ],
+            "fields": [
+                {
+                    "name": "operation_type",
+                    "type": "DrwaSyncOperationType"
+                },
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "holder",
+                    "type": "Address"
+                },
+                {
+                    "name": "version",
+                    "type": "u64"
+                },
+                {
+                    "name": "body",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "DrwaSyncOperationType": {
+            "type": "enum",
+            "docs": [
+                "Enumerates the sync operation payloads accepted by the native DRWA mirror."
+            ],
+            "variants": [
+                {
+                    "name": "TokenPolicy",
+                    "discriminant": 0
+                },
+                {
+                    "name": "AssetRecord",
+                    "discriminant": 1
+                },
+                {
+                    "name": "HolderMirror",
+                    "discriminant": 2
+                },
+                {
+                    "name": "HolderProfile",
+                    "discriminant": 3
+                },
+                {
+                    "name": "HolderAuditorAuthorization",
+                    "discriminant": 4
+                },
+                {
+                    "name": "HolderMirrorDelete",
+                    "discriminant": 5
+                },
+                {
+                    "name": "AuthorizedCallerUpdate",
+                    "discriminant": 6
+                },
+                {
+                    "name": "GovernanceApprove",
+                    "discriminant": 7
+                },
+                {
+                    "name": "GovernanceExecute",
+                    "discriminant": 8
+                }
+            ]
+        },
+        "DrwaTokenPolicy": {
+            "type": "struct",
+            "docs": [
+                "Represents the per-token policy mirrored to the native DRWA layer."
+            ],
+            "fields": [
+                {
+                    "name": "drwa_enabled",
+                    "type": "bool"
+                },
+                {
+                    "name": "global_pause",
+                    "type": "bool"
+                },
+                {
+                    "name": "strict_auditor_mode",
+                    "type": "bool"
+                },
+                {
+                    "name": "metadata_protection_enabled",
+                    "type": "bool"
+                },
+                {
+                    "name": "token_policy_version",
+                    "type": "u64"
+                },
+                {
+                    "name": "allowed_investor_classes",
+                    "type": "List<bytes>"
+                },
+                {
+                    "name": "allowed_jurisdictions",
+                    "type": "List<bytes>"
+                }
+            ]
+        }
+    }
+}

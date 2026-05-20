@@ -1,0 +1,492 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "drwa-attestation",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Manages auditor attestations (approve/revoke) for holder-token pairs and",
+        "syncs the resulting auditor-authorization state to the native DRWA mirror.",
+        "",
+        "The auditor role is transferable via a propose-accept pattern with a",
+        "time-limited acceptance window."
+    ],
+    "name": "DrwaAttestation",
+    "constructor": {
+        "docs": [
+            "Initializes the contract with the auditor address."
+        ],
+        "inputs": [
+            {
+                "name": "auditor",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "docs": [
+            "Upgrades storage layout version if needed and preserves existing state."
+        ],
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "docs": [
+                "Proposes a new auditor address.",
+                "",
+                "Only the contract owner may call this endpoint.",
+                "The proposed address must call `acceptAuditor` within",
+                "`PENDING_AUDITOR_ACCEPTANCE_ROUNDS` to finalize the transfer."
+            ],
+            "name": "setAuditor",
+            "rustMethodName": "set_auditor",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "auditor",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending auditor transfer.",
+                "",
+                "Only the proposed auditor address may call this endpoint before the",
+                "acceptance window expires. On success, the pending state is cleared and",
+                "the active auditor address is updated."
+            ],
+            "name": "acceptAuditor",
+            "rustMethodName": "accept_auditor",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Revokes the current auditor address, clearing all auditor and pending",
+                "auditor state. Only the contract owner may call this."
+            ],
+            "name": "revokeAuditor",
+            "rustMethodName": "revoke_auditor",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Records or replaces an attestation for a subject on a given token.",
+                "",
+                "Only the current auditor may call this endpoint.",
+                "Syncs the resulting auditor-authorization state to the native mirror.",
+                "Reverts if the caller is not the auditor, `subject` is the zero",
+                "address, or `token_id` fails validation."
+            ],
+            "name": "recordAttestation",
+            "rustMethodName": "record_attestation",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "subject",
+                    "type": "Address"
+                },
+                {
+                    "name": "attestation_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "evidence_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "approved",
+                    "type": "bool"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Revokes an existing attestation by setting `approved = false` and",
+                "syncing the revocation to the native mirror.",
+                "",
+                "Only the current auditor may call this endpoint.",
+                "Reverts if the caller is not the auditor or the attestation does not",
+                "exist."
+            ],
+            "name": "revokeAttestation",
+            "rustMethodName": "revoke_attestation",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "subject",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Maps (token_id, subject) to the latest attestation record."
+            ],
+            "name": "getAttestation",
+            "rustMethodName": "attestation",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "subject",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "AttestationRecord"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "The active auditor address authorized to record and revoke attestations."
+            ],
+            "name": "getAuditor",
+            "rustMethodName": "auditor",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "docs": [
+                "Emits when a new auditor is proposed."
+            ],
+            "identifier": "drwaAuditorProposed",
+            "inputs": [
+                {
+                    "name": "auditor",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when a pending auditor accepts the role."
+            ],
+            "identifier": "drwaAuditorAccepted",
+            "inputs": [
+                {
+                    "name": "auditor",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when the auditor address is revoked by the owner."
+            ],
+            "identifier": "drwaAuditorRevoked",
+            "inputs": [
+                {
+                    "name": "previous_auditor",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when an existing attestation is overwritten by a new one.",
+                "Indexers can diff this against the subsequent `drwaAttestationRecorded`",
+                "event to detect what changed."
+            ],
+            "identifier": "drwaAttestationOverwritten",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "subject",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "auditor",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when an attestation is recorded or revoked."
+            ],
+            "identifier": "drwaAttestationRecorded",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "subject",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "auditor",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "AttestationEventPayload"
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "AttestationEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload emitted when an attestation is recorded or revoked."
+            ],
+            "fields": [
+                {
+                    "name": "attestation_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "approved",
+                    "type": "bool"
+                },
+                {
+                    "name": "attested_round",
+                    "type": "u64"
+                }
+            ]
+        },
+        "AttestationRecord": {
+            "type": "struct",
+            "docs": [
+                "Stores the latest attestation recorded for a subject and token pair."
+            ],
+            "fields": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "subject",
+                    "type": "Address"
+                },
+                {
+                    "name": "attestation_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "evidence_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "approved",
+                    "type": "bool"
+                },
+                {
+                    "name": "attested_round",
+                    "type": "u64"
+                }
+            ]
+        },
+        "DrwaCallerDomain": {
+            "type": "enum",
+            "docs": [
+                "Identifies the contract domain that produced a sync envelope."
+            ],
+            "variants": [
+                {
+                    "name": "PolicyRegistry",
+                    "discriminant": 0
+                },
+                {
+                    "name": "AssetManager",
+                    "discriminant": 1
+                },
+                {
+                    "name": "IdentityRegistry",
+                    "discriminant": 2
+                },
+                {
+                    "name": "Attestation",
+                    "discriminant": 3
+                },
+                {
+                    "name": "RecoveryAdmin",
+                    "discriminant": 4
+                },
+                {
+                    "name": "AuthAdmin",
+                    "discriminant": 5
+                }
+            ]
+        },
+        "DrwaSyncEnvelope": {
+            "type": "struct",
+            "docs": [
+                "Wraps the caller domain, payload hash, and batched operations for mirror sync."
+            ],
+            "fields": [
+                {
+                    "name": "schema_version",
+                    "type": "u16"
+                },
+                {
+                    "name": "caller_domain",
+                    "type": "DrwaCallerDomain"
+                },
+                {
+                    "name": "payload_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "operations",
+                    "type": "List<DrwaSyncOperation>"
+                },
+                {
+                    "name": "pre_recovery_state_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "recovery_scope",
+                    "type": "List<bytes>"
+                }
+            ]
+        },
+        "DrwaSyncOperation": {
+            "type": "struct",
+            "docs": [
+                "Carries a single versioned sync operation inside an envelope."
+            ],
+            "fields": [
+                {
+                    "name": "operation_type",
+                    "type": "DrwaSyncOperationType"
+                },
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "holder",
+                    "type": "Address"
+                },
+                {
+                    "name": "version",
+                    "type": "u64"
+                },
+                {
+                    "name": "body",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "DrwaSyncOperationType": {
+            "type": "enum",
+            "docs": [
+                "Enumerates the sync operation payloads accepted by the native DRWA mirror."
+            ],
+            "variants": [
+                {
+                    "name": "TokenPolicy",
+                    "discriminant": 0
+                },
+                {
+                    "name": "AssetRecord",
+                    "discriminant": 1
+                },
+                {
+                    "name": "HolderMirror",
+                    "discriminant": 2
+                },
+                {
+                    "name": "HolderProfile",
+                    "discriminant": 3
+                },
+                {
+                    "name": "HolderAuditorAuthorization",
+                    "discriminant": 4
+                },
+                {
+                    "name": "HolderMirrorDelete",
+                    "discriminant": 5
+                },
+                {
+                    "name": "AuthorizedCallerUpdate",
+                    "discriminant": 6
+                },
+                {
+                    "name": "GovernanceApprove",
+                    "discriminant": 7
+                },
+                {
+                    "name": "GovernanceExecute",
+                    "discriminant": 8
+                }
+            ]
+        }
+    }
+}

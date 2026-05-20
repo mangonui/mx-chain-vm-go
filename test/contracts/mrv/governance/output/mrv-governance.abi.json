@@ -1,0 +1,736 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-governance",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Multi-sig governance contract with timelock enforcement for MRV",
+        "ecosystem actions: emergency pause, VVB accreditation, GSOC verifier",
+        "management, and Green Badge issuance."
+    ],
+    "name": "MrvGovernance",
+    "constructor": {
+        "docs": [
+            "Initializes the signer set, approval threshold, and timelock duration."
+        ],
+        "inputs": [
+            {
+                "name": "approval_threshold",
+                "type": "u32"
+            },
+            {
+                "name": "timelock_seconds",
+                "type": "u64"
+            },
+            {
+                "name": "initial_signers",
+                "type": "variadic<Address>",
+                "multi_arg": true
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "docs": [
+            "Upgrades storage layout version if needed and preserves existing state."
+        ],
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "docs": [
+                "Proposes adding a governance signer."
+            ],
+            "name": "proposeAddSigner",
+            "rustMethodName": "propose_add_signer",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "signer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Proposes removing a governance signer."
+            ],
+            "name": "proposeRemoveSigner",
+            "rustMethodName": "propose_remove_signer",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "signer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Proposes changing the approval threshold."
+            ],
+            "name": "proposeApprovalThresholdChange",
+            "rustMethodName": "propose_approval_threshold_change",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "approval_threshold",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Proposes changing the governance timelock."
+            ],
+            "name": "proposeTimelockChange",
+            "rustMethodName": "propose_timelock_change",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "timelock_seconds",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Create an emergency pause/unpause proposal. Subject to timelock and multi-sig approval."
+            ],
+            "name": "proposeEmergencyPause",
+            "rustMethodName": "propose_emergency_pause",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "pause",
+                    "type": "bool"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Propose granting or revoking VVB accreditation for a verifier address."
+            ],
+            "name": "proposeVerifierAccreditation",
+            "rustMethodName": "propose_verifier_accreditation",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                },
+                {
+                    "name": "approved",
+                    "type": "bool"
+                },
+                {
+                    "name": "role",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Proposes Green Badge SFT issuance for a farmer address."
+            ],
+            "name": "proposeBadgeIssuance",
+            "rustMethodName": "propose_badge_issuance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "farmer",
+                    "type": "Address"
+                },
+                {
+                    "name": "badge_metadata_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Record caller's approval for a pending proposal. Duplicate approvals are rejected."
+            ],
+            "name": "approveProposal",
+            "rustMethodName": "approve_proposal",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Executes a fully approved proposal after the timelock expires.",
+                "",
+                "Proposals remain executable for 30 days after `eta`."
+            ],
+            "name": "executeProposal",
+            "rustMethodName": "execute_proposal",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getProposal",
+            "rustMethodName": "get_proposal",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<GovernanceProposal>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "isSigner",
+            "rustMethodName": "is_signer",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "signer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getPaused",
+            "rustMethodName": "paused",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getApprovalThreshold",
+            "rustMethodName": "approval_threshold",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getTimelockSeconds",
+            "rustMethodName": "timelock_seconds",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getVerifierAccreditation",
+            "rustMethodName": "get_verifier_accreditation",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<VerifierAccreditation>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Returns true if the given verifier DID holds an active (approved=true)",
+                "accreditation. Used by mrv/registry to gate submitVerificationStatement()."
+            ],
+            "name": "isAccreditedVvb",
+            "rustMethodName": "is_accredited_vvb",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Returns the governance-approved badge metadata hash for a farmer, if present."
+            ],
+            "name": "getBadgeIssuance",
+            "rustMethodName": "get_badge_issuance",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "farmer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<bytes>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes adding a GSOC verifier.",
+                "",
+                "GSOC verifiers are distinct from VVB accreditations and remain scoped",
+                "to the GSOC methodology and jurisdiction data stored in this contract."
+            ],
+            "name": "proposeGsocVerifier",
+            "rustMethodName": "propose_gsoc_verifier",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "verifier_did",
+                    "type": "Address"
+                },
+                {
+                    "name": "credentials_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "jurisdiction",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Approves a GSOC verifier proposal."
+            ],
+            "name": "approveGsocVerifierProposal",
+            "rustMethodName": "approve_gsoc_verifier_proposal",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Executes a proposed GSOC verifier addition after the timelock and",
+                "approval threshold are satisfied."
+            ],
+            "name": "executeGsocVerifierProposal",
+            "rustMethodName": "execute_gsoc_verifier_proposal",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Proposes revoking a GSOC verifier through the standard timelocked",
+                "governance proposal flow."
+            ],
+            "name": "proposeRemoveGsocVerifier",
+            "rustMethodName": "propose_remove_gsoc_verifier",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "verifier_did",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isGsocVerifierApproved",
+            "rustMethodName": "is_gsoc_verifier_approved",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "verifier_did",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getGsocVerifierRevokedAt",
+            "rustMethodName": "get_gsoc_verifier_revoked_at",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "verifier_did",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "isGsocVerifierReviewRequired",
+            "rustMethodName": "is_gsoc_verifier_review_required",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "verifier_did",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "signerAdded",
+            "inputs": [
+                {
+                    "name": "signer",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "signerRemoved",
+            "inputs": [
+                {
+                    "name": "signer",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "thresholdChanged",
+            "inputs": [
+                {
+                    "name": "approval_threshold",
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "identifier": "timelockChanged",
+            "inputs": [
+                {
+                    "name": "timelock_seconds",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "identifier": "proposalCreated",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "proposal_type",
+                    "type": "u8"
+                }
+            ]
+        },
+        {
+            "identifier": "proposalApproved",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "signer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "approval_count",
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "identifier": "proposalExecuted",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "pauseChanged",
+            "inputs": [
+                {
+                    "name": "paused",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emitted when a Green Badge issuance is executed."
+            ],
+            "identifier": "badgeIssued",
+            "inputs": [
+                {
+                    "name": "farmer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "badge_metadata_hash",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "verifierAccreditationChanged",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "approved",
+                    "type": "bool",
+                    "indexed": true
+                },
+                {
+                    "name": "role",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "gsocVerifierProposed",
+            "inputs": [
+                {
+                    "name": "verifier_did",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "jurisdiction",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "gsocVerifierAdded",
+            "inputs": [
+                {
+                    "name": "verifier_did",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "gsocVerifierRemoved",
+            "inputs": [
+                {
+                    "name": "verifier_did",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "gsocVerifierRevocationReviewRequired",
+            "inputs": [
+                {
+                    "name": "verifier_did",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "revoked_at",
+                    "type": "u64"
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "GovernanceProposal": {
+            "type": "struct",
+            "docs": [
+                "Multi-sig governance proposal supporting pause, verifier accreditation,",
+                "and Green Badge issuance actions."
+            ],
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "proposal_type",
+                    "type": "u8"
+                },
+                {
+                    "name": "target",
+                    "type": "Address"
+                },
+                {
+                    "name": "bool_value",
+                    "type": "bool"
+                },
+                {
+                    "name": "role",
+                    "type": "bytes"
+                },
+                {
+                    "name": "eta",
+                    "type": "u64"
+                },
+                {
+                    "name": "executed",
+                    "type": "bool"
+                },
+                {
+                    "name": "executed_at_timestamp",
+                    "type": "u64"
+                }
+            ]
+        },
+        "VerifierAccreditation": {
+            "type": "struct",
+            "docs": [
+                "VVB accreditation record with role assignment and approval state.",
+                "",
+                "Shared across MRV contracts that need to reference verifier accreditations",
+                "in cross-contract interactions or ABI generation."
+            ],
+            "fields": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                },
+                {
+                    "name": "approved",
+                    "type": "bool"
+                },
+                {
+                    "name": "role",
+                    "type": "bytes"
+                },
+                {
+                    "name": "updated_at",
+                    "type": "u64"
+                }
+            ]
+        }
+    }
+}

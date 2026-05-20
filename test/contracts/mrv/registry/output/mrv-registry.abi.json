@@ -1,0 +1,2203 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-registry",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "On-chain MRV registry contract.",
+        "",
+        "Anchors report proofs, methodology records, project records, evidence,",
+        "verification cases, issuance lots, execution bundles, and verification",
+        "statements. All mutating endpoints require governance or owner access."
+    ],
+    "name": "MrvRegistry",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "governance",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "docs": [
+            "Upgrades storage layout version if needed and preserves existing state."
+        ],
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "setGovernanceReadAddress",
+            "rustMethodName": "set_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance_read_address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearGovernanceReadAddress",
+            "rustMethodName": "clear_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Configures the carbon-credit contract as the sole authority allowed to",
+                "drive terminal issuance-lot lifecycle states."
+            ],
+            "name": "setCarbonCreditLifecycleAddress",
+            "rustMethodName": "set_carbon_credit_lifecycle_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "carbon_credit_address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearCarbonCreditLifecycleAddress",
+            "rustMethodName": "clear_carbon_credit_lifecycle_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Registers a methodology version. Idempotent when the existing record",
+                "matches; reverts on conflicting fields."
+            ],
+            "name": "registerMethodology",
+            "rustMethodName": "register_methodology",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "methodology_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "version_label",
+                    "type": "bytes"
+                },
+                {
+                    "name": "pack_digest",
+                    "type": "bytes"
+                },
+                {
+                    "name": "approval_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "effective_from",
+                    "type": "u64"
+                },
+                {
+                    "name": "effective_to",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Updates the approval status of an existing methodology version."
+            ],
+            "name": "setMethodologyApprovalStatus",
+            "rustMethodName": "set_methodology_approval_status",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "methodology_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "version_label",
+                    "type": "bytes"
+                },
+                {
+                    "name": "approval_status",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Marks a methodology version as superseded and sets the replacement version."
+            ],
+            "name": "supersedeMethodology",
+            "rustMethodName": "supersede_methodology",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "methodology_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "version_label",
+                    "type": "bytes"
+                },
+                {
+                    "name": "replacement_version_label",
+                    "type": "bytes"
+                },
+                {
+                    "name": "effective_to",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Registers a project record. Idempotent when identity fields match;",
+                "reverts on conflicting fields."
+            ],
+            "name": "registerProject",
+            "rustMethodName": "register_project",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "tenant_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "asset_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "reporting_period_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version_label",
+                    "type": "bytes"
+                },
+                {
+                    "name": "status",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Updates the status of an existing project record."
+            ],
+            "name": "setProjectStatus",
+            "rustMethodName": "set_project_status",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "status",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Registers an evidence record. Idempotent when all fields match;",
+                "reverts on conflicting records."
+            ],
+            "name": "registerEvidence",
+            "rustMethodName": "register_evidence",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "evidence_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "entity_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "entity_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "evidence_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "manifest_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "submitted_at",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Creates a new verification case in `pending_assignment` status."
+            ],
+            "name": "createVerificationCase",
+            "rustMethodName": "create_verification_case",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "case_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "target_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "target_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "assignee",
+                    "type": "Address"
+                },
+                {
+                    "name": "_updated_at",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Updates a verification case. Enforces a valid state-machine transition",
+                "on the `status` field."
+            ],
+            "name": "updateVerificationCase",
+            "rustMethodName": "update_verification_case",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "case_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "assignee",
+                    "type": "Address"
+                },
+                {
+                    "name": "verifier_statement_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "verifier_attestation_ref",
+                    "type": "bytes"
+                },
+                {
+                    "name": "_updated_at",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Creates an issuance lot in `minted` status. Idempotent when all fields match.",
+                "",
+                "B-01 (AUD-001) invariants enforced at write time:",
+                " - `project_id` MUST reference a registered project record.",
+                " - `verification_case_id` MUST reference an existing verification",
+                "   case AND that case MUST be in status `approved`.",
+                " - `replacement_for_lot_id`, when non-empty, MUST reference an",
+                "   existing issuance lot.",
+                " - `quantity_scaled` is canonical fixed-scale quantity using",
+                "   4 decimal places (`10^-4` units)."
+            ],
+            "name": "createIssuanceLot",
+            "rustMethodName": "create_issuance_lot",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "verification_case_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "vintage",
+                    "type": "u64"
+                },
+                {
+                    "name": "quantity_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "replacement_for_lot_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Transitions a minted issuance lot to `retired` status."
+            ],
+            "name": "retireIssuanceLot",
+            "rustMethodName": "retire_issuance_lot",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Reverses a minted or retired issuance lot and records the reversed amount.",
+                "",
+                "B-01 (AUD-001) replacement-lineage invariant: when a",
+                "`replacement_lot_id` is supplied, the referenced lot MUST exist",
+                "AND its `replacement_for_lot_id` MUST point back at this lot.",
+                "This forward/back pointer pair prevents fabricated lineage where",
+                "a reversal cites a non-existent or unrelated replacement. Pass",
+                "an empty `replacement_lot_id` for reversals without a designated",
+                "replacement."
+            ],
+            "name": "reverseIssuanceLot",
+            "rustMethodName": "reverse_issuance_lot",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "reversed_amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "replacement_lot_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Anchors a report proof together with its evidence manifest hash.",
+                "",
+                "`anchorReportV2` replaces the removed `anchorReport` entrypoint and",
+                "binds the initial proof to the `(tenant, farm, season)` tuple. Once a",
+                "season is bound, subsequent updates for that season must use",
+                "`amendReportV2`."
+            ],
+            "name": "anchorReportV2",
+            "rustMethodName": "anchor_report_v2",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "report_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_tenant_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_farm_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_season_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "report_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hash_algo",
+                    "type": "bytes"
+                },
+                {
+                    "name": "canonicalization",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version",
+                    "type": "u64"
+                },
+                {
+                    "name": "anchored_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "evidence_manifest_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Replaces an existing report proof and updates the season binding when needed."
+            ],
+            "name": "amendReportV2",
+            "rustMethodName": "amend_report_v2",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "report_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_tenant_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_farm_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_season_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "report_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hash_algo",
+                    "type": "bytes"
+                },
+                {
+                    "name": "canonicalization",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version",
+                    "type": "u64"
+                },
+                {
+                    "name": "anchored_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "evidence_manifest_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getReportProof",
+            "rustMethodName": "get_report_proof",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "report_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<MrvReportProof>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getReportProofBySeason",
+            "rustMethodName": "get_report_proof_by_season",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "public_tenant_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_farm_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_season_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<MrvReportProof>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getReportIdBySeason",
+            "rustMethodName": "get_report_id_by_season",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "public_tenant_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_farm_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_season_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<bytes>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "isReportAnchored",
+            "rustMethodName": "is_report_anchored",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "report_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getReportCanonicalId",
+            "rustMethodName": "get_report_canonical_id",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "report_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<bytes>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getReportProofAmendmentCount",
+            "rustMethodName": "get_report_proof_amendment_count",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "report_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getReportProofAmendment",
+            "rustMethodName": "get_report_proof_amendment",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "report_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "amendment_index",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<MrvReportProof>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getAnchoredReportsCount",
+            "rustMethodName": "get_anchored_reports_count",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getMethodologyRecord",
+            "rustMethodName": "get_methodology_record",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "methodology_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "version_label",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<MethodologyRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getMethodologyCanonicalId",
+            "rustMethodName": "get_methodology_canonical_id",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "methodology_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "version_label",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<bytes>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getMethodologyRecordsCount",
+            "rustMethodName": "get_methodology_records_count",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getProjectRecord",
+            "rustMethodName": "get_project_record",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<ProjectRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getProjectCanonicalId",
+            "rustMethodName": "get_project_canonical_id",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<bytes>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getProjectRecordsCount",
+            "rustMethodName": "get_project_records_count",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getEvidenceRecord",
+            "rustMethodName": "get_evidence_record",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "evidence_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<EvidenceRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getEvidenceCanonicalId",
+            "rustMethodName": "get_evidence_canonical_id",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "evidence_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<bytes>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getEvidenceRecordsCount",
+            "rustMethodName": "get_evidence_records_count",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getVerificationCase",
+            "rustMethodName": "get_verification_case",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "case_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<VerificationCaseRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getVerificationCaseCanonicalId",
+            "rustMethodName": "get_verification_case_canonical_id",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "case_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<bytes>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getVerificationCasesCount",
+            "rustMethodName": "get_verification_cases_count",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getIssuanceLot",
+            "rustMethodName": "get_issuance_lot",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<IssuanceLotRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getIssuanceLotCanonicalId",
+            "rustMethodName": "get_issuance_lot_canonical_id",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<bytes>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getIssuanceLotsCount",
+            "rustMethodName": "get_issuance_lots_count",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Registers an accredited VVB address for verification statement",
+                "submission."
+            ],
+            "name": "registerAccreditedVvb",
+            "rustMethodName": "register_accredited_vvb",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "vvb_did",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Removes an accredited VVB address."
+            ],
+            "name": "deregisterAccreditedVvb",
+            "rustMethodName": "deregister_accredited_vvb",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "vvb_did",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isVvbAccredited",
+            "rustMethodName": "is_vvb_accredited",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "vvb_did",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Commits an execution bundle reference for a PAI monitoring period."
+            ],
+            "name": "commitExecutionBundle",
+            "rustMethodName": "commit_execution_bundle",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                },
+                {
+                    "name": "bundle_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "bundle_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Submits the initial verification statement for a previously committed",
+                "execution bundle.",
+                "",
+                "The first statement remains immutable. Later corrections must be",
+                "recorded through `submitVerifierAdjustment`."
+            ],
+            "name": "submitVerificationStatement",
+            "rustMethodName": "submit_verification_statement",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                },
+                {
+                    "name": "vvb_did",
+                    "type": "Address"
+                },
+                {
+                    "name": "statement_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "outcome",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Appends a verifier adjustment after the initial statement has been",
+                "submitted."
+            ],
+            "name": "submitVerifierAdjustment",
+            "rustMethodName": "submit_verifier_adjustment",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                },
+                {
+                    "name": "adjustment_cid",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getExecutionBundle",
+            "rustMethodName": "get_execution_bundle",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<ExecutionBundleRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getVerificationStatement",
+            "rustMethodName": "get_verification_statement",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<VerificationStatementRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Monotonically increasing version counter per verification case,",
+                "incremented on every status change. Consumers compare this value",
+                "against their last-seen version to detect stale reads."
+            ],
+            "name": "getVerificationCaseVersion",
+            "rustMethodName": "verification_case_version",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "case_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getGovernanceReadAddress",
+            "rustMethodName": "governance_read_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getCarbonCreditLifecycleAddress",
+            "rustMethodName": "carbon_credit_lifecycle_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes the initial governance address during bootstrap, or rotates",
+                "governance when called by the currently active governance address."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Cancels bootstrap-time pending governance only while no active",
+                "governance has yet been accepted. Once governance is active, control is",
+                "irreversible and cannot be revoked back to owner-only."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        }
+    ],
+    "events": [
+        {
+            "docs": [
+                "Legacy V1 event retained for ABI backward compatibility.",
+                "",
+                "The contract emits the V2 report events for current report anchoring."
+            ],
+            "identifier": "mrvReportAnchored",
+            "inputs": [
+                {
+                    "name": "report_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "public_tenant_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "public_farm_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "public_season_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "MrvReportAnchoredEventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvReportAnchoredV2",
+            "inputs": [
+                {
+                    "name": "report_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "public_tenant_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "public_farm_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "public_season_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "MrvReportAnchoredV2EventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvReportAmendedV2",
+            "inputs": [
+                {
+                    "name": "report_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "public_tenant_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "public_farm_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "public_season_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "MrvReportAmendedV2EventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvMethodologyRegistered",
+            "inputs": [
+                {
+                    "name": "methodology_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "version_label",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "MethodologyRegisteredEventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvMethodologyStatusChanged",
+            "inputs": [
+                {
+                    "name": "methodology_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "version_label",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "approval_status",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvMethodologySuperseded",
+            "inputs": [
+                {
+                    "name": "methodology_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "version_label",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "MethodologySupersededEventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvProjectRegistered",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "tenant_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "ProjectRegisteredEventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvProjectStatusChanged",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "status",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvEvidenceRegistered",
+            "inputs": [
+                {
+                    "name": "evidence_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "entity_type",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "entity_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "EvidenceRegisteredEventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvVerificationCaseCreated",
+            "inputs": [
+                {
+                    "name": "case_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "target_type",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "target_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvVerificationCaseUpdated",
+            "inputs": [
+                {
+                    "name": "case_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "VerificationCaseUpdatedEventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvIssuanceLotCreated",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "verification_case_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "IssuanceLotCreatedEventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvIssuanceLotRetired",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvIssuanceLotReversed",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "IssuanceLotReversedEventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvIdentityCanonicalized",
+            "inputs": [
+                {
+                    "name": "domain",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "external_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "IdentityCanonicalizedEventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvExecutionBundleCommitted",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "bundle_cid",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "bundle_hash",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvVerificationStatementSubmitted",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "vvb_did",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "statement_cid",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "outcome",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "mrvVerifierAdjustmentSubmitted",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "adjustment_cid",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "governanceReadAddressUpdated",
+            "inputs": [
+                {
+                    "name": "governance_read_address",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "governanceReadAddressCleared",
+            "inputs": []
+        },
+        {
+            "identifier": "carbonCreditLifecycleAddressUpdated",
+            "inputs": [
+                {
+                    "name": "carbon_credit_address",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "carbonCreditLifecycleAddressCleared",
+            "inputs": []
+        },
+        {
+            "identifier": "mrvGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "EvidenceRecord": {
+            "type": "struct",
+            "docs": [
+                "Content-addressed evidence record anchored to an entity (project, farm, season)."
+            ],
+            "fields": [
+                {
+                    "name": "evidence_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "entity_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "entity_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "evidence_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "manifest_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "submitted_at",
+                    "type": "u64"
+                }
+            ]
+        },
+        "EvidenceRegisteredEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload for `mrvEvidenceRegistered`."
+            ],
+            "fields": [
+                {
+                    "name": "evidence_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "manifest_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "submitted_at",
+                    "type": "u64"
+                }
+            ]
+        },
+        "ExecutionBundleRecord": {
+            "type": "struct",
+            "docs": [
+                "Execution bundle committed for a PAI monitoring period."
+            ],
+            "fields": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                },
+                {
+                    "name": "bundle_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "bundle_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "committed_at",
+                    "type": "u64"
+                }
+            ]
+        },
+        "IdentityCanonicalizedEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload emitted whenever the contract derives a canonical",
+                "on-chain fingerprint for an externally supplied MRV identifier."
+            ],
+            "fields": [
+                {
+                    "name": "canonical_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "writer",
+                    "type": "Address"
+                }
+            ]
+        },
+        "IssuanceLotCreatedEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload for `mrvIssuanceLotCreated`."
+            ],
+            "fields": [
+                {
+                    "name": "vintage",
+                    "type": "u64"
+                },
+                {
+                    "name": "quantity_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "replacement_for_lot_id",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "IssuanceLotRecord": {
+            "type": "struct",
+            "docs": [
+                "Issuance lot record following a `minted -> retired | reversed` lifecycle."
+            ],
+            "fields": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "verification_case_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "vintage",
+                    "type": "u64"
+                },
+                {
+                    "name": "quantity_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "replacement_for_lot_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "reversed_amount_scaled",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        "IssuanceLotReversedEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload for `mrvIssuanceLotReversed`."
+            ],
+            "fields": [
+                {
+                    "name": "reversed_amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "replacement_lot_id",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "MethodologyRecord": {
+            "type": "struct",
+            "docs": [
+                "Versioned methodology record with approval lifecycle and supersession tracking."
+            ],
+            "fields": [
+                {
+                    "name": "methodology_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "version_label",
+                    "type": "bytes"
+                },
+                {
+                    "name": "pack_digest",
+                    "type": "bytes"
+                },
+                {
+                    "name": "approval_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "effective_from",
+                    "type": "u64"
+                },
+                {
+                    "name": "effective_to",
+                    "type": "u64"
+                },
+                {
+                    "name": "superseded_by",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "MethodologyRegisteredEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload for `mrvMethodologyRegistered`."
+            ],
+            "fields": [
+                {
+                    "name": "pack_digest",
+                    "type": "bytes"
+                },
+                {
+                    "name": "approval_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "effective_from",
+                    "type": "u64"
+                },
+                {
+                    "name": "effective_to",
+                    "type": "u64"
+                }
+            ]
+        },
+        "MethodologySupersededEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload for `mrvMethodologySuperseded`."
+            ],
+            "fields": [
+                {
+                    "name": "replacement_version_label",
+                    "type": "bytes"
+                },
+                {
+                    "name": "effective_to",
+                    "type": "u64"
+                }
+            ]
+        },
+        "MrvReportAmendedV2EventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload for `mrvReportAmendedV2`."
+            ],
+            "fields": [
+                {
+                    "name": "report_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hash_algo",
+                    "type": "bytes"
+                },
+                {
+                    "name": "canonicalization",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version",
+                    "type": "u64"
+                },
+                {
+                    "name": "anchored_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "public_project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "evidence_manifest_hash",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "MrvReportAnchoredEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload for the legacy `mrvReportAnchored` event."
+            ],
+            "fields": [
+                {
+                    "name": "report_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hash_algo",
+                    "type": "bytes"
+                },
+                {
+                    "name": "canonicalization",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version",
+                    "type": "u64"
+                },
+                {
+                    "name": "anchored_at",
+                    "type": "u64"
+                }
+            ]
+        },
+        "MrvReportAnchoredV2EventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload for `mrvReportAnchoredV2` including project ID and evidence manifest."
+            ],
+            "fields": [
+                {
+                    "name": "report_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hash_algo",
+                    "type": "bytes"
+                },
+                {
+                    "name": "canonicalization",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version",
+                    "type": "u64"
+                },
+                {
+                    "name": "anchored_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "public_project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "evidence_manifest_hash",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "MrvReportProof": {
+            "type": "struct",
+            "docs": [
+                "Anchored MRV report proof binding a `(tenant, farm, season)` tuple to a",
+                "content-addressed report hash and its evidence manifest."
+            ],
+            "fields": [
+                {
+                    "name": "report_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_tenant_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_farm_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_season_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "public_project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "report_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hash_algo",
+                    "type": "bytes"
+                },
+                {
+                    "name": "canonicalization",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version",
+                    "type": "u64"
+                },
+                {
+                    "name": "anchored_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "evidence_manifest_hash",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "ProjectRecord": {
+            "type": "struct",
+            "docs": [
+                "MRV project record linking a tenant, asset, reporting period, and methodology."
+            ],
+            "fields": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "tenant_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "asset_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "reporting_period_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version_label",
+                    "type": "bytes"
+                },
+                {
+                    "name": "status",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "ProjectRegisteredEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload for `mrvProjectRegistered`."
+            ],
+            "fields": [
+                {
+                    "name": "asset_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "reporting_period_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version_label",
+                    "type": "bytes"
+                },
+                {
+                    "name": "status",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "VerificationCaseRecord": {
+            "type": "struct",
+            "docs": [
+                "Verification case tracking VVB assignment, status transitions, and attestation."
+            ],
+            "fields": [
+                {
+                    "name": "case_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "target_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "target_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "assignee",
+                    "type": "Address"
+                },
+                {
+                    "name": "verifier_statement_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "verifier_attestation_ref",
+                    "type": "bytes"
+                },
+                {
+                    "name": "updated_at",
+                    "type": "u64"
+                }
+            ]
+        },
+        "VerificationCaseUpdatedEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload for `mrvVerificationCaseUpdated`."
+            ],
+            "fields": [
+                {
+                    "name": "status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "assignee",
+                    "type": "Address"
+                },
+                {
+                    "name": "verifier_statement_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "verifier_attestation_ref",
+                    "type": "bytes"
+                },
+                {
+                    "name": "updated_at",
+                    "type": "u64"
+                }
+            ]
+        },
+        "VerificationStatementRecord": {
+            "type": "struct",
+            "docs": [
+                "Verification statement submitted for a PAI monitoring period."
+            ],
+            "fields": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                },
+                {
+                    "name": "vvb_did",
+                    "type": "Address"
+                },
+                {
+                    "name": "statement_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "outcome",
+                    "type": "bytes"
+                },
+                {
+                    "name": "submitted_at",
+                    "type": "u64"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,1101 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "drwa-asset-manager",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Manages regulated asset registration and per-holder, per-token compliance",
+        "state. Syncs both asset records and holder compliance mirrors to the native",
+        "DRWA layer on every mutation.",
+        "",
+        "Governance is transferable via a propose-accept pattern with a time-limited",
+        "acceptance window."
+    ],
+    "name": "DrwaAssetManager",
+    "constructor": {
+        "docs": [
+            "Initializes the contract with the governance address."
+        ],
+        "inputs": [
+            {
+                "name": "governance",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "docs": [
+            "Upgrades storage layout version if needed and preserves existing state."
+        ],
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "docs": [
+                "Sets the policy-registry contract address consulted for on-chain token",
+                "policy existence checks."
+            ],
+            "name": "setPolicyRegistryAddress",
+            "rustMethodName": "set_policy_registry_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "policy_registry",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Registers a new regulated asset and syncs it to the native mirror.",
+                "",
+                "Access is limited to the governance address or the contract owner.",
+                "Stores `regulated = true` for the new asset.",
+                "Reverts if `token_id` is invalid or the asset is already registered."
+            ],
+            "name": "registerAsset",
+            "rustMethodName": "register_asset",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "carrier_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "asset_class",
+                    "type": "bytes"
+                },
+                {
+                    "name": "policy_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Attaches a hash-only legal/custody binding pack to an existing asset.",
+                "",
+                "This does not store legal documents, custody contracts, insurance",
+                "papers, redemption terms, or valuation files on chain. It stores fixed",
+                "32-byte commitments plus the valuation authority address so the",
+                "off-chain pack can be independently audited and projection layers can",
+                "fail closed when the binding is absent."
+            ],
+            "name": "attachAssetLegalCustodyPack",
+            "rustMethodName": "attach_asset_legal_custody_pack",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "legal_pack_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "custody_attestation_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "insurance_ref_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "valuation_authority",
+                    "type": "Address"
+                },
+                {
+                    "name": "redemption_terms_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "asset_state_proof_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Writes per-holder, per-token compliance state and syncs it to the",
+                "native mirror.",
+                "",
+                "Access is limited to the governance address or the contract owner.",
+                "`auditor_authorized` is attestation-owned and must remain `false` on",
+                "this path; the attestation contract is the only authority that may",
+                "promote or revoke auditor authorization.",
+                "Increments the holder policy version monotonically.",
+                "Reverts if `holder` is the zero address, `token_id` is invalid,",
+                "`expiry_round` is in the past unless it is `0`, or the native mirror",
+                "sync fails."
+            ],
+            "name": "syncHolderCompliance",
+            "rustMethodName": "sync_holder_compliance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "holder",
+                    "type": "Address"
+                },
+                {
+                    "name": "kyc_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "aml_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "investor_class",
+                    "type": "bytes"
+                },
+                {
+                    "name": "jurisdiction_code",
+                    "type": "bytes"
+                },
+                {
+                    "name": "expiry_round",
+                    "type": "u64"
+                },
+                {
+                    "name": "transfer_locked",
+                    "type": "bool"
+                },
+                {
+                    "name": "receive_locked",
+                    "type": "bool"
+                },
+                {
+                    "name": "auditor_authorized",
+                    "type": "bool"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Updates the carrier_type, asset_class, and policy_id of an existing",
+                "registered asset and syncs the updated record to the native mirror.",
+                "Does not re-register or change the `regulated` flag.",
+                "",
+                "Access is limited to the governance address or the contract owner.",
+                "Reverts if the asset is not registered."
+            ],
+            "name": "updateAsset",
+            "rustMethodName": "update_asset",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "carrier_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "asset_class",
+                    "type": "bytes"
+                },
+                {
+                    "name": "policy_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Initiates orderly wind-down for a regulated asset (MiCA Art. 47).",
+                "",
+                "Once initiated, the transfer gate in the Go layer will only allow",
+                "transfers TO the issuer address (redemption). Peer-to-peer transfers",
+                "are denied with `DRWA_WIND_DOWN_ACTIVE`.",
+                "",
+                "Access is limited to the governance address or the contract owner.",
+                "Reverts if the asset is not registered or wind-down was already initiated."
+            ],
+            "name": "initiateWindDown",
+            "rustMethodName": "initiate_wind_down",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Completes an initiated wind-down. Completion keeps the global transfer",
+                "lock active and records a bounded evidence CID for the legal/operator",
+                "completion package."
+            ],
+            "name": "completeWindDown",
+            "rustMethodName": "complete_wind_down",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "completion_evidence_cid",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Cancels an initiated wind-down only with an explicit legal basis CID.",
+                "Cancellation clears the global transfer lock in the native mirror."
+            ],
+            "name": "cancelWindDown",
+            "rustMethodName": "cancel_wind_down",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "legal_basis_cid",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Returns whether wind-down has been initiated for the given token."
+            ],
+            "name": "isWindDownInitiated",
+            "rustMethodName": "is_wind_down_initiated",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getWindDownStatusCode",
+            "rustMethodName": "get_wind_down_status_code",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u8"
+                }
+            ]
+        },
+        {
+            "name": "getWindDownStatusRound",
+            "rustMethodName": "get_wind_down_status_round",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getWindDownEvidenceCid",
+            "rustMethodName": "get_wind_down_evidence_cid",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Maps a token identifier to its regulated asset record."
+            ],
+            "name": "getAsset",
+            "rustMethodName": "asset",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "AssetRecord"
+                }
+            ]
+        },
+        {
+            "name": "getWindDownStatusStorage",
+            "rustMethodName": "wind_down_status",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u8"
+                }
+            ]
+        },
+        {
+            "name": "getWindDownStatusRoundStorage",
+            "rustMethodName": "wind_down_status_round",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getWindDownEvidenceCidStorage",
+            "rustMethodName": "wind_down_evidence_cid",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "getAssetLegalCustodyPack",
+            "rustMethodName": "asset_legal_custody_pack",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "AssetLegalCustodyPack"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Returns the holder compliance mirror for a given (token_id, holder) pair."
+            ],
+            "name": "getHolderMirror",
+            "rustMethodName": "get_holder_mirror",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "holder",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaHolderMirror"
+                }
+            ]
+        },
+        {
+            "name": "getPolicyRegistryAddress",
+            "rustMethodName": "policy_registry_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes a new governance address and starts the acceptance window."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window",
+                "expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Revokes the current governance address, clearing all governance and",
+                "pending governance state. Once governance is configured, only that",
+                "governance address may call this endpoint."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "The active governance address authorized to manage compliance state."
+            ],
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "The proposed governance address awaiting acceptance."
+            ],
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "docs": [
+                "Emits when orderly wind-down is initiated for an asset."
+            ],
+            "identifier": "drwaWindDownInitiated",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "drwaWindDownCompleted",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "evidence_cid",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "drwaWindDownCancelled",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "legal_basis_cid",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when an asset record is created."
+            ],
+            "identifier": "drwaAssetRegistered",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "policy_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "regulated",
+                    "type": "bool",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when an asset record is updated."
+            ],
+            "identifier": "drwaAssetUpdated",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "policy_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "drwaPolicyRegistryAddressSet",
+            "inputs": [
+                {
+                    "name": "policy_registry",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "drwaAssetLegalCustodyPackAttached",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "AssetLegalCustodyEventPayload"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when holder compliance data is written."
+            ],
+            "identifier": "drwaHolderCompliance",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "holder",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "HolderComplianceEventPayload"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when a new governance address is proposed."
+            ],
+            "identifier": "drwaGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when a pending governance address accepts the role."
+            ],
+            "identifier": "drwaGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when the governance address is revoked by the owner."
+            ],
+            "identifier": "drwaGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous_governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "AssetLegalCustodyEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload emitted when legal/custody commitments are attached."
+            ],
+            "fields": [
+                {
+                    "name": "legal_pack_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "custody_attestation_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "insurance_ref_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "valuation_authority",
+                    "type": "Address"
+                },
+                {
+                    "name": "redemption_terms_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "asset_state_proof_hash",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "AssetLegalCustodyPack": {
+            "type": "struct",
+            "docs": [
+                "Hash-only legal/custody binding pack for an off-chain RWA asset file.",
+                "",
+                "The referenced documents remain off-chain under the regulated asset",
+                "authority. On chain we keep only fixed-size commitments and the valuation",
+                "authority address so token-to-asset truth can be audited without storing",
+                "legal documents or regulated personal data directly in contract storage."
+            ],
+            "fields": [
+                {
+                    "name": "legal_pack_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "custody_attestation_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "insurance_ref_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "valuation_authority",
+                    "type": "Address"
+                },
+                {
+                    "name": "redemption_terms_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "asset_state_proof_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "bound_round",
+                    "type": "u64"
+                }
+            ]
+        },
+        "AssetRecord": {
+            "type": "struct",
+            "docs": [
+                "Stores the regulated asset metadata associated with a token identifier."
+            ],
+            "fields": [
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "carrier_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "asset_class",
+                    "type": "bytes"
+                },
+                {
+                    "name": "policy_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "regulated",
+                    "type": "bool"
+                },
+                {
+                    "name": "policy_version_at_register",
+                    "type": "u64"
+                },
+                {
+                    "docs": [
+                        "MiCA orderly wind-down flag. Once true, the Go transfer gate restricts",
+                        "transfers to issuer-only (redemption). Appended at struct tail for",
+                        "backwards-compatible deserialization of existing records."
+                    ],
+                    "name": "wind_down_initiated",
+                    "type": "bool"
+                },
+                {
+                    "docs": [
+                        "Block round at which wind-down was initiated; zero if not initiated."
+                    ],
+                    "name": "wind_down_round",
+                    "type": "u64"
+                }
+            ]
+        },
+        "DrwaCallerDomain": {
+            "type": "enum",
+            "docs": [
+                "Identifies the contract domain that produced a sync envelope."
+            ],
+            "variants": [
+                {
+                    "name": "PolicyRegistry",
+                    "discriminant": 0
+                },
+                {
+                    "name": "AssetManager",
+                    "discriminant": 1
+                },
+                {
+                    "name": "IdentityRegistry",
+                    "discriminant": 2
+                },
+                {
+                    "name": "Attestation",
+                    "discriminant": 3
+                },
+                {
+                    "name": "RecoveryAdmin",
+                    "discriminant": 4
+                },
+                {
+                    "name": "AuthAdmin",
+                    "discriminant": 5
+                }
+            ]
+        },
+        "DrwaHolderMirror": {
+            "type": "struct",
+            "docs": [
+                "Per-holder, per-token compliance state mirrored to the native DRWA layer."
+            ],
+            "fields": [
+                {
+                    "name": "holder_policy_version",
+                    "type": "u64"
+                },
+                {
+                    "name": "kyc_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "aml_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "investor_class",
+                    "type": "bytes"
+                },
+                {
+                    "name": "jurisdiction_code",
+                    "type": "bytes"
+                },
+                {
+                    "name": "expiry_round",
+                    "type": "u64"
+                },
+                {
+                    "name": "transfer_locked",
+                    "type": "bool"
+                },
+                {
+                    "name": "receive_locked",
+                    "type": "bool"
+                },
+                {
+                    "name": "auditor_authorized",
+                    "type": "bool"
+                }
+            ]
+        },
+        "DrwaSyncEnvelope": {
+            "type": "struct",
+            "docs": [
+                "Wraps the caller domain, payload hash, and batched operations for mirror sync."
+            ],
+            "fields": [
+                {
+                    "name": "schema_version",
+                    "type": "u16"
+                },
+                {
+                    "name": "caller_domain",
+                    "type": "DrwaCallerDomain"
+                },
+                {
+                    "name": "payload_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "operations",
+                    "type": "List<DrwaSyncOperation>"
+                },
+                {
+                    "name": "pre_recovery_state_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "recovery_scope",
+                    "type": "List<bytes>"
+                }
+            ]
+        },
+        "DrwaSyncOperation": {
+            "type": "struct",
+            "docs": [
+                "Carries a single versioned sync operation inside an envelope."
+            ],
+            "fields": [
+                {
+                    "name": "operation_type",
+                    "type": "DrwaSyncOperationType"
+                },
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "holder",
+                    "type": "Address"
+                },
+                {
+                    "name": "version",
+                    "type": "u64"
+                },
+                {
+                    "name": "body",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "DrwaSyncOperationType": {
+            "type": "enum",
+            "docs": [
+                "Enumerates the sync operation payloads accepted by the native DRWA mirror."
+            ],
+            "variants": [
+                {
+                    "name": "TokenPolicy",
+                    "discriminant": 0
+                },
+                {
+                    "name": "AssetRecord",
+                    "discriminant": 1
+                },
+                {
+                    "name": "HolderMirror",
+                    "discriminant": 2
+                },
+                {
+                    "name": "HolderProfile",
+                    "discriminant": 3
+                },
+                {
+                    "name": "HolderAuditorAuthorization",
+                    "discriminant": 4
+                },
+                {
+                    "name": "HolderMirrorDelete",
+                    "discriminant": 5
+                },
+                {
+                    "name": "AuthorizedCallerUpdate",
+                    "discriminant": 6
+                },
+                {
+                    "name": "GovernanceApprove",
+                    "discriminant": 7
+                },
+                {
+                    "name": "GovernanceExecute",
+                    "discriminant": 8
+                }
+            ]
+        },
+        "HolderComplianceEventPayload": {
+            "type": "struct",
+            "docs": [
+                "Event payload emitted when holder compliance data is updated."
+            ],
+            "fields": [
+                {
+                    "name": "holder_policy_version",
+                    "type": "u64"
+                },
+                {
+                    "name": "policy_version_evaluated",
+                    "type": "u64"
+                },
+                {
+                    "name": "kyc_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "aml_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "investor_class",
+                    "type": "bytes"
+                },
+                {
+                    "name": "jurisdiction_code",
+                    "type": "bytes"
+                },
+                {
+                    "name": "expiry_round",
+                    "type": "u64"
+                },
+                {
+                    "name": "transfer_locked",
+                    "type": "bool"
+                },
+                {
+                    "name": "receive_locked",
+                    "type": "bool"
+                },
+                {
+                    "name": "auditor_authorized",
+                    "type": "bool"
+                }
+            ]
+        }
+    }
+}

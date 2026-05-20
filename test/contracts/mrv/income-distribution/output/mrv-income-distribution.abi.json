@@ -1,0 +1,552 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-income-distribution",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Merkle-based income distribution contract.",
+        "",
+        "Issuers fund distributions with COME, and holders claim against a",
+        "recorded Merkle root until the configured expiry. Merkle proof depth",
+        "is capped at 64 levels to bound on-chain execution cost. Claim leaves",
+        "use `MRV_YIELD_CLAIM_LEAF_V2` and bind the distribution total so a",
+        "Merkle tree built for a different funded amount cannot be replayed.",
+        "",
+        "`#[payable(\"*\")]` is used instead of a fixed token identifier because",
+        "the accepted COME token ID is set dynamically at `init` time and may",
+        "differ across deployments."
+    ],
+    "name": "IncomeDistribution",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "governance",
+                "type": "Address"
+            },
+            {
+                "name": "come_token_id",
+                "type": "TokenIdentifier"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "setGovernanceReadAddress",
+            "rustMethodName": "set_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearGovernanceReadAddress",
+            "rustMethodName": "clear_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Funds a distribution with COME and records its Merkle root and expiry."
+            ],
+            "name": "fundDistribution",
+            "rustMethodName": "fund_distribution",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "merkle_root",
+                    "type": "bytes"
+                },
+                {
+                    "name": "snapshot_block",
+                    "type": "u64"
+                },
+                {
+                    "name": "manifest_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "expiry_epoch",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Claims a funded amount for the caller by verifying a keccak256 Merkle proof.",
+                "",
+                "Proof depth is capped at 64 levels to bound execution cost. The leaf",
+                "binds `distribution_id` to prevent cross-distribution replay."
+            ],
+            "name": "claimYield",
+            "rustMethodName": "claim_yield",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "merkle_proof",
+                    "type": "List<bytes>"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Pauses claims for a distribution."
+            ],
+            "name": "pauseDistribution",
+            "rustMethodName": "pause_distribution",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Resumes claims for a distribution."
+            ],
+            "name": "unpauseDistribution",
+            "rustMethodName": "unpause_distribution",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Returns unclaimed funds to the issuer after the distribution expires."
+            ],
+            "name": "reclaimExpired",
+            "rustMethodName": "reclaim_expired",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Recovers a shortfall by accepting a COME payment and forwarding it",
+                "to the original issuer of the distribution. Only governance or owner",
+                "may call. The shortfall amount is reduced accordingly."
+            ],
+            "name": "recoverShortfall",
+            "rustMethodName": "recover_shortfall",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getDistribution",
+            "rustMethodName": "get_distribution",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<DistributionRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "isClaimed",
+            "rustMethodName": "is_claimed",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "holder",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Returns the number of epochs remaining before the distribution expires,",
+                "or 0 if the distribution does not exist or is already expired."
+            ],
+            "name": "getClaimWindow",
+            "rustMethodName": "get_claim_window",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getGovernanceReadAddress",
+            "rustMethodName": "governance_read_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getDistributionEscrow",
+            "rustMethodName": "distribution_escrow",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes the initial governance address during bootstrap, or rotates",
+                "governance when called by the currently active governance address."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Cancels bootstrap-time pending governance only while no active",
+                "governance has yet been accepted. Once governance is active, control is",
+                "irreversible and cannot be revoked back to owner-only."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        }
+    ],
+    "events": [
+        {
+            "identifier": "distributionFunded",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "total_amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "yieldClaimed",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "holder",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "shortfallDetected",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "expected_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "actual_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "shortfall",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "shortfallRecovered",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "recovered_amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "distributionReclaimed",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "distributionPaused",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "distributionUnpaused",
+            "inputs": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "governanceReadAddressUpdated",
+            "inputs": [
+                {
+                    "name": "governance_read_address",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "governanceReadAddressCleared",
+            "inputs": []
+        },
+        {
+            "identifier": "mrvGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "DistributionRecord": {
+            "type": "struct",
+            "docs": [
+                "Merkle-gated COME distribution record with funding, claim tracking, and expiry."
+            ],
+            "fields": [
+                {
+                    "name": "distribution_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "issuer",
+                    "type": "Address"
+                },
+                {
+                    "name": "merkle_root",
+                    "type": "bytes"
+                },
+                {
+                    "docs": [
+                        "Off-chain reference block for the holder snapshot. Not enforced",
+                        "on-chain — consumers use this to correlate the Merkle tree with the",
+                        "block at which balances were snapshotted."
+                    ],
+                    "name": "snapshot_block",
+                    "type": "u64"
+                },
+                {
+                    "name": "manifest_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "total_amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "total_claimed_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "expiry_epoch",
+                    "type": "u64"
+                },
+                {
+                    "name": "funded_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "reclaimed",
+                    "type": "bool"
+                }
+            ]
+        }
+    }
+}

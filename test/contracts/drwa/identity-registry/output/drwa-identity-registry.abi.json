@@ -1,0 +1,699 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "drwa-identity-registry",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Manages per-holder identity records (KYC, AML, investor class, jurisdiction)",
+        "and syncs holder-profile state to the native DRWA mirror on every mutation.",
+        "",
+        "Governance is transferable via a propose-accept pattern with a time-limited",
+        "acceptance window."
+    ],
+    "name": "DrwaIdentityRegistry",
+    "constructor": {
+        "docs": [
+            "Initializes the contract with the governance address."
+        ],
+        "inputs": [
+            {
+                "name": "governance",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "docs": [
+            "Upgrades storage layout version if needed and preserves existing state."
+        ],
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "docs": [
+                "Registers a new identity for `subject`.",
+                "",
+                "Sets both KYC and AML status to `\"pending\"` and sets the initial expiry",
+                "round to the current block round plus `DEFAULT_IDENTITY_VALIDITY_ROUNDS`.",
+                "Access is limited to the governance address or the contract owner.",
+                "Reverts if `subject` is the zero address or an identity already exists."
+            ],
+            "name": "registerIdentity",
+            "rustMethodName": "register_identity",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address"
+                },
+                {
+                    "name": "legal_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "jurisdiction_code",
+                    "type": "bytes"
+                },
+                {
+                    "name": "registration_number",
+                    "type": "bytes"
+                },
+                {
+                    "name": "entity_type",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Registers an identity using only a 32-byte off-chain identity",
+                "commitment instead of raw legal name / registration-number payloads.",
+                "",
+                "This is the forward-safe path for new DRWA deployments. It preserves",
+                "the existing holder-profile sync semantics while leaving historical",
+                "raw-PII records to a separate migration/disclosure process."
+            ],
+            "name": "registerIdentityCommitment",
+            "rustMethodName": "register_identity_commitment",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address"
+                },
+                {
+                    "name": "identity_ref_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "jurisdiction_code",
+                    "type": "bytes"
+                },
+                {
+                    "name": "entity_type",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Updates the compliance fields for an existing identity and syncs the",
+                "holder profile to the native mirror.",
+                "",
+                "Access is limited to the governance address or the contract owner.",
+                "Reverts if the subject is missing, `expiry_round` is in the past",
+                "unless it is `0`, or `expiry_round` exceeds the configured maximum",
+                "validity window."
+            ],
+            "name": "updateComplianceStatus",
+            "rustMethodName": "update_compliance_status",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address"
+                },
+                {
+                    "name": "kyc_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "aml_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "investor_class",
+                    "type": "bytes"
+                },
+                {
+                    "name": "expiry_round",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Deactivates an existing identity by setting both KYC and AML status to",
+                "`\"deactivated\"`, incrementing the holder profile version, and syncing",
+                "the change to the native mirror.",
+                "",
+                "This preserves the audit trail (the record is not deleted).",
+                "Access is limited to the governance address or the contract owner.",
+                "Reverts if the identity does not exist or `subject` is the zero address."
+            ],
+            "name": "deactivateIdentity",
+            "rustMethodName": "deactivate_identity",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "GDPR right-to-erasure endpoint.",
+                "",
+                "Zeros all PII fields (legal_name, registration_number, entity_type,",
+                "investor_class) while preserving the address reference and setting",
+                "jurisdiction_code to \"ERASED\". Both KYC and AML status are set to",
+                "\"deactivated\" to prevent the erased identity from passing compliance",
+                "checks. The holder profile is synced to the native mirror so the",
+                "enforcement gate sees the deactivated status immediately.",
+                "",
+                "Unlike `deactivateIdentity`, this endpoint is specifically for GDPR",
+                "Article 17 compliance — it removes personal data while maintaining",
+                "the minimum audit trail required by the regulation.",
+                "",
+                "Access is limited to the governance address or the contract owner.",
+                "Reverts if the identity does not exist or `subject` is the zero address."
+            ],
+            "name": "eraseIdentity",
+            "rustMethodName": "erase_identity",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaSyncEnvelope"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Maps a holder address to its identity record."
+            ],
+            "name": "getIdentity",
+            "rustMethodName": "identity",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "IdentityRecord"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Maps a holder address to its privacy-preserving identity commitment."
+            ],
+            "name": "getIdentityPrivacyCommitment",
+            "rustMethodName": "identity_privacy_commitment",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "IdentityPrivacyCommitment"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Updates the identity validity configuration.",
+                "",
+                "Access is limited to the governance address or the contract owner.",
+                "Reverts if `default_rounds` is zero, `max_rounds` is less than",
+                "`default_rounds`, or `max_rounds` exceeds the hard cap of 1,000,000."
+            ],
+            "name": "setValidityConfig",
+            "rustMethodName": "set_validity_config",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "default_rounds",
+                    "type": "u64"
+                },
+                {
+                    "name": "max_rounds",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes a new governance address and starts the acceptance window."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window",
+                "expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Revokes the current governance address, clearing all governance and",
+                "pending governance state. Once governance is configured, only that",
+                "governance address may call this endpoint."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "The active governance address authorized to manage compliance state."
+            ],
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "The proposed governance address awaiting acceptance."
+            ],
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "drwaIdentityRegistered",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "jurisdiction_code",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "entity_type",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "drwaIdentityCommitmentRegistered",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "identity_ref_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "jurisdiction_code",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "entity_type",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "drwaComplianceUpdated",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "kyc_status",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "aml_status",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "drwaIdentityDeactivated",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emitted when an identity is erased for GDPR compliance.",
+                "The event carries only the subject address (no PII)."
+            ],
+            "identifier": "drwaIdentityErased",
+            "inputs": [
+                {
+                    "name": "subject",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when a new governance address is proposed."
+            ],
+            "identifier": "drwaGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when a pending governance address accepts the role."
+            ],
+            "identifier": "drwaGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emits when the governance address is revoked by the owner."
+            ],
+            "identifier": "drwaGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous_governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "DrwaCallerDomain": {
+            "type": "enum",
+            "docs": [
+                "Identifies the contract domain that produced a sync envelope."
+            ],
+            "variants": [
+                {
+                    "name": "PolicyRegistry",
+                    "discriminant": 0
+                },
+                {
+                    "name": "AssetManager",
+                    "discriminant": 1
+                },
+                {
+                    "name": "IdentityRegistry",
+                    "discriminant": 2
+                },
+                {
+                    "name": "Attestation",
+                    "discriminant": 3
+                },
+                {
+                    "name": "RecoveryAdmin",
+                    "discriminant": 4
+                },
+                {
+                    "name": "AuthAdmin",
+                    "discriminant": 5
+                }
+            ]
+        },
+        "DrwaSyncEnvelope": {
+            "type": "struct",
+            "docs": [
+                "Wraps the caller domain, payload hash, and batched operations for mirror sync."
+            ],
+            "fields": [
+                {
+                    "name": "schema_version",
+                    "type": "u16"
+                },
+                {
+                    "name": "caller_domain",
+                    "type": "DrwaCallerDomain"
+                },
+                {
+                    "name": "payload_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "operations",
+                    "type": "List<DrwaSyncOperation>"
+                },
+                {
+                    "name": "pre_recovery_state_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "recovery_scope",
+                    "type": "List<bytes>"
+                }
+            ]
+        },
+        "DrwaSyncOperation": {
+            "type": "struct",
+            "docs": [
+                "Carries a single versioned sync operation inside an envelope."
+            ],
+            "fields": [
+                {
+                    "name": "operation_type",
+                    "type": "DrwaSyncOperationType"
+                },
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "holder",
+                    "type": "Address"
+                },
+                {
+                    "name": "version",
+                    "type": "u64"
+                },
+                {
+                    "name": "body",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "DrwaSyncOperationType": {
+            "type": "enum",
+            "docs": [
+                "Enumerates the sync operation payloads accepted by the native DRWA mirror."
+            ],
+            "variants": [
+                {
+                    "name": "TokenPolicy",
+                    "discriminant": 0
+                },
+                {
+                    "name": "AssetRecord",
+                    "discriminant": 1
+                },
+                {
+                    "name": "HolderMirror",
+                    "discriminant": 2
+                },
+                {
+                    "name": "HolderProfile",
+                    "discriminant": 3
+                },
+                {
+                    "name": "HolderAuditorAuthorization",
+                    "discriminant": 4
+                },
+                {
+                    "name": "HolderMirrorDelete",
+                    "discriminant": 5
+                },
+                {
+                    "name": "AuthorizedCallerUpdate",
+                    "discriminant": 6
+                },
+                {
+                    "name": "GovernanceApprove",
+                    "discriminant": 7
+                },
+                {
+                    "name": "GovernanceExecute",
+                    "discriminant": 8
+                }
+            ]
+        },
+        "IdentityPrivacyCommitment": {
+            "type": "struct",
+            "docs": [
+                "Forward-only privacy-preserving identity anchor.",
+                "",
+                "The hash is expected to commit to the off-chain legal/KYC payload using a",
+                "domain-separated preimage maintained by the regulated identity authority.",
+                "The contract stores only the commitment, not the raw legal name or",
+                "registration number."
+            ],
+            "fields": [
+                {
+                    "name": "subject",
+                    "type": "Address"
+                },
+                {
+                    "name": "identity_ref_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "committed_round",
+                    "type": "u64"
+                }
+            ]
+        },
+        "IdentityRecord": {
+            "type": "struct",
+            "docs": [
+                "Stores the identity data tracked for a holder address.",
+                "",
+                "The `subject` field is stored in the value as well as used as the storage",
+                "key so off-chain consumers can read it without reconstructing the key."
+            ],
+            "fields": [
+                {
+                    "name": "subject",
+                    "type": "Address"
+                },
+                {
+                    "name": "legal_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "jurisdiction_code",
+                    "type": "bytes"
+                },
+                {
+                    "name": "registration_number",
+                    "type": "bytes"
+                },
+                {
+                    "name": "entity_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "kyc_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "aml_status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "investor_class",
+                    "type": "bytes"
+                },
+                {
+                    "name": "expiry_round",
+                    "type": "u64"
+                }
+            ]
+        }
+    }
+}

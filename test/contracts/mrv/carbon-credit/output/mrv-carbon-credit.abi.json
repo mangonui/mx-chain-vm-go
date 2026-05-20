@@ -1,0 +1,1591 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-carbon-credit",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Carbon credit issuance and retirement contract.",
+        "",
+        "dVCU issuance is gated by an active IME record and a committed execution",
+        "bundle. GSOC credits follow a parallel track with verifier validation,",
+        "DNA project reference, and ITMO serial uniqueness. Both tracks enforce a",
+        "configurable buffer pool contribution."
+    ],
+    "name": "CarbonCreditModule",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "governance",
+                "type": "Address"
+            },
+            {
+                "name": "buffer_pool_addr",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "docs": [
+            "Upgrades storage layout version if needed and preserves existing state."
+        ],
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "setGovernanceReadAddress",
+            "rustMethodName": "set_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance_read_address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearGovernanceReadAddress",
+            "rustMethodName": "clear_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Configures the MRV registry mirror that receives terminal lot",
+                "lifecycle transitions from this carbon-credit contract."
+            ],
+            "name": "setRegistryLifecycleAddress",
+            "rustMethodName": "set_registry_lifecycle_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "registry_address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearRegistryLifecycleAddress",
+            "rustMethodName": "clear_registry_lifecycle_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Configures the canonical dVCU token identifier controlled by this",
+                "lifecycle contract."
+            ],
+            "name": "setDvcuTokenId",
+            "rustMethodName": "set_dvcu_token_id",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Configures the canonical dGSC token identifier controlled by this",
+                "lifecycle contract."
+            ],
+            "name": "setDgscTokenId",
+            "rustMethodName": "set_dgsc_token_id",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Issues dVCU credits after validating the IME record, bundle binding,",
+                "and jurisdiction membership for the requested period."
+            ],
+            "name": "issueCredits",
+            "rustMethodName": "issue_credits",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                },
+                {
+                    "name": "jurisdiction_code",
+                    "type": "bytes"
+                },
+                {
+                    "name": "gross_removals_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "buffer_pct_bps",
+                    "type": "u64"
+                },
+                {
+                    "name": "bundle_ref",
+                    "type": "ExecutionBundleRef"
+                },
+                {
+                    "name": "committed_bundle_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "recipient",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Registers the committed execution bundle hash for a PAI and monitoring period."
+            ],
+            "name": "registerCommittedBundle",
+            "rustMethodName": "register_committed_bundle",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                },
+                {
+                    "name": "bundle_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Registers the active IME validation record for a project."
+            ],
+            "name": "registerImeRecord",
+            "rustMethodName": "register_ime_record",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "science_service_image_digest",
+                    "type": "bytes"
+                },
+                {
+                    "name": "parameter_pack_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "calibration_dataset_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "strata_protocol_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version",
+                    "type": "bytes"
+                },
+                {
+                    "name": "valid_until",
+                    "type": "u64"
+                },
+                {
+                    "name": "domain_codes",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Legacy drain endpoint for pending buffer contributions created before",
+                "issuance became atomic. New issuances deposit into buffer-pool in the",
+                "same transaction and should not create `pendingBufferDeposits` rows."
+            ],
+            "name": "confirmBufferDeposit",
+            "rustMethodName": "confirm_buffer_deposit",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Revokes the active IME record for a project. Future issuance attempts",
+                "for this project will fail until a new record is registered."
+            ],
+            "name": "revokeImeRecord",
+            "rustMethodName": "revoke_ime_record",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Starts a retirement record that can later be burned or reverted."
+            ],
+            "name": "initiateRetirement",
+            "rustMethodName": "initiate_retirement",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "retirement_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "beneficiary",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Confirms a retirement burn by recording the burn transaction hash and",
+                "transitioning the retirement to `burned` status."
+            ],
+            "name": "confirmRetirementBurn",
+            "rustMethodName": "confirm_retirement_burn",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "retirement_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "burn_tx_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Records a non-retirement issuance-lot reversal in the carbon-credit",
+                "lifecycle authority and mirrors the terminal state to MRV registry when",
+                "configured. `lot_id` is the carbon-credit reversal identifier."
+            ],
+            "name": "recordIssuanceLotReversal",
+            "rustMethodName": "record_issuance_lot_reversal",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "reversed_amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "replacement_lot_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Reverts an initiated retirement back to `reverted` status. Only",
+                "retirements in `initiated` state can be reverted."
+            ],
+            "name": "revertRetirement",
+            "rustMethodName": "revert_retirement",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "retirement_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Issues GSOC credits after validating the registered bundle, verifier,",
+                "DNA reference, and ITMO serial for the period."
+            ],
+            "name": "issueGsocCredits",
+            "rustMethodName": "issue_gsoc_credits",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                },
+                {
+                    "name": "gsoc_bundle_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "verifier_did",
+                    "type": "Address"
+                },
+                {
+                    "name": "dna_project_ref",
+                    "type": "bytes"
+                },
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                },
+                {
+                    "name": "gross_removals_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "buffer_pct_bps",
+                    "type": "u64"
+                },
+                {
+                    "name": "recipient",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Registers the committed GSOC bundle hash for a PAI and monitoring period."
+            ],
+            "name": "registerGsocBundle",
+            "rustMethodName": "register_gsoc_bundle",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                },
+                {
+                    "name": "bundle_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Retires GSOC credits for a serial and emits the corresponding retirement event.",
+                "",
+                "M-03 (AUD-008): this method no longer mutates the third field",
+                "of `gsoc_serial_records` in place. Instead:",
+                " - `gsoc_serial_records(serial)` is now read-only after",
+                "   issuance. The `BigUint` field carries the IMMUTABLE initial",
+                "   amount minted for the serial and is authoritative for the",
+                "   replay-safe lineage view.",
+                " - `gsoc_serial_remaining(serial)` carries the running total.",
+                "   It is initialized implicitly from the initial amount (by",
+                "   fallback in the read path) and decrements on every",
+                "   retirement.",
+                " - `gsoc_retirement_events(serial, seq_key)` is the append-only",
+                "   log of every retirement touching the serial. Each entry",
+                "   captures the amount retired, the beneficiary, the block",
+                "   round, and the `remaining_after` balance, so a reader can",
+                "   reconstruct the full retirement history without trusting a",
+                "   mutable snapshot.",
+                " - `gsoc_retirement_seq_count(serial)` stores the next",
+                "   sequence number to be written."
+            ],
+            "name": "burnAndRetireGsoc",
+            "rustMethodName": "burn_and_retire_gsoc",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                },
+                {
+                    "name": "amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "beneficiary_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "beneficiary_address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Adds a verifier to the approved GSOC verifier set.",
+                "",
+                "This contract maintains a local GSOC verifier set separate from the",
+                "governance contract's GSOC verifier registry.  The governance contract",
+                "is the authoritative source; this set remains only for legacy/bootstrap",
+                "visibility and is not used by `issueGsocCredits`.",
+                "",
+                "Issuance checks the configured governance-read contract directly, so",
+                "this legacy set cannot authorize `issueGsocCredits`."
+            ],
+            "name": "addApprovedGsocVerifier",
+            "rustMethodName": "add_approved_gsoc_verifier",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Removes a verifier from the approved GSOC verifier set."
+            ],
+            "name": "removeApprovedGsocVerifier",
+            "rustMethodName": "remove_approved_gsoc_verifier",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isGsocVerifierApproved",
+            "rustMethodName": "is_gsoc_verifier_approved",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Returns the canonical GSOC serial inventory hash for a project.",
+                "",
+                "The preimage matches the worker cadence exactly:",
+                "`sha256(JSON.stringify([{serial, quantityTco2e, status}, ...]))`",
+                "with entries sorted by serial ascending and status restricted to",
+                "`\"registered\"` or `\"retired\"`."
+            ],
+            "name": "getCanonicalGsocSerialInventoryHash",
+            "rustMethodName": "get_canonical_gsoc_serial_inventory_hash",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "verifyCanonicalGsocSerialInventoryHash",
+            "rustMethodName": "verify_canonical_gsoc_serial_inventory_hash",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "expected_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getImeRecord",
+            "rustMethodName": "get_ime_record",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<ImeValidationRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getActiveImeRecordVersion",
+            "rustMethodName": "get_active_ime_record_version",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getImeRecordVersionCount",
+            "rustMethodName": "get_ime_record_version_count",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getImeRecordVersion",
+            "rustMethodName": "get_ime_record_version",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "version",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<ImeValidationRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getIssuanceImeRecordVersion",
+            "rustMethodName": "get_issuance_ime_record_version",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "pai_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getRetirement",
+            "rustMethodName": "get_retirement",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "retirement_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<RetirementRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getRecordedIssuanceLotReversal",
+            "rustMethodName": "get_recorded_issuance_lot_reversal",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<BigUint>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getIssuedIssuanceLotRecipient",
+            "rustMethodName": "get_issued_issuance_lot_recipient",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<Address>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getGsocSerialRecipient",
+            "rustMethodName": "get_gsoc_serial_recipient",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<Address>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Canonical dVCU lifecycle token identifier."
+            ],
+            "name": "getDvcuTokenId",
+            "rustMethodName": "dvcu_token_id",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "TokenIdentifier"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Canonical dGSC lifecycle token identifier."
+            ],
+            "name": "getDgscTokenId",
+            "rustMethodName": "dgsc_token_id",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "TokenIdentifier"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Monotonic dVCU minted supply counter."
+            ],
+            "name": "getTotalDvcuMinted",
+            "rustMethodName": "total_dvcu_minted",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Monotonic dVCU burned supply counter."
+            ],
+            "name": "getTotalDvcuBurned",
+            "rustMethodName": "total_dvcu_burned",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Monotonic dGSC minted supply counter."
+            ],
+            "name": "getTotalDgscMinted",
+            "rustMethodName": "total_dgsc_minted",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Monotonic dGSC burned supply counter."
+            ],
+            "name": "getTotalDgscBurned",
+            "rustMethodName": "total_dgsc_burned",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Project-scoped GSOC issued counter used by reserve-proof reconciliation."
+            ],
+            "name": "getGsocProjectTotalIssued",
+            "rustMethodName": "project_gsoc_total_issued",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Project-scoped GSOC retired counter used by reserve-proof reconciliation."
+            ],
+            "name": "getGsocProjectTotalRetired",
+            "rustMethodName": "project_gsoc_total_retired",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Project-scoped GSOC serial count used by reserve-proof reconciliation."
+            ],
+            "name": "getGsocProjectSerialCount",
+            "rustMethodName": "project_gsoc_serial_count",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getRetiredIssuanceLotAmount",
+            "rustMethodName": "retired_issuance_lot_amount",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getRegistryLifecycleAddress",
+            "rustMethodName": "registry_lifecycle_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "M-03 (AUD-008): running remaining balance per serial. Only",
+                "written by `burn_and_retire_gsoc`. Absent ⇒ no retirements yet",
+                "(remaining equals the initial amount on the serial record)."
+            ],
+            "name": "getGsocSerialRemaining",
+            "rustMethodName": "gsoc_serial_remaining",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "M-03 (AUD-008): append-only log of every retirement event that",
+                "has touched the given serial. Keyed by `(serial, seq)`;",
+                "`seq` is 0-based and strictly increasing per serial."
+            ],
+            "name": "getGsocRetirementEvent",
+            "rustMethodName": "gsoc_retirement_events",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                },
+                {
+                    "name": "seq",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "GsocRetirementEventRecord"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "M-03 (AUD-008): next sequence number to be written to",
+                "`gsoc_retirement_events` for the given serial. Equal to the",
+                "total number of retirements logged for that serial so far."
+            ],
+            "name": "getGsocRetirementSeqCount",
+            "rustMethodName": "gsoc_retirement_seq_count",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getGovernanceReadAddress",
+            "rustMethodName": "governance_read_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes the initial governance address during bootstrap, or rotates",
+                "governance when called by the currently active governance address."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Cancels bootstrap-time pending governance only while no active",
+                "governance has yet been accepted. Once governance is active, control is",
+                "irreversible and cannot be revoked back to owner-only."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        }
+    ],
+    "events": [
+        {
+            "identifier": "creditsIssued",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "lot_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "pai_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "net_issuable",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "recipient",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Legacy event retained in the ABI for older pending-deposit flows."
+            ],
+            "identifier": "bufferDepositPending",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "pai_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "buffer_contribution",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "bufferDepositConfirmed",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "buffer_contribution",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "imeRegistered",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "imeRevoked",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "retirementInitiated",
+            "inputs": [
+                {
+                    "name": "retirement_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "lot_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "retirementBurned",
+            "inputs": [
+                {
+                    "name": "retirement_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "burn_tx_hash",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "retirementReverted",
+            "inputs": [
+                {
+                    "name": "retirement_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "issuanceLotReversalRecorded",
+            "inputs": [
+                {
+                    "name": "lot_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "IssuanceLotReversalRecordedPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "gsocCreditsIssued",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "pai_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "net_issuable",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "recipient",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "gsocCreditRetired",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "beneficiary_name",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "beneficiary_address",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "M-03 (AUD-008): fires on every partial or full GSOC retirement.",
+                "Carries `seq` (per-serial sequence number) as an indexed topic",
+                "and a `GsocPartialRetirementEventPayload` with the pair",
+                "`{amount_scaled, remaining_after}`. Indexers reconstruct the",
+                "per-serial retirement lineage by replaying these events in",
+                "`seq` order.",
+                "",
+                "Event-log framing allows only ONE non-indexed data argument,",
+                "so the two `BigUint` values are bundled into a single payload",
+                "struct below."
+            ],
+            "identifier": "gsocSerialPartiallyRetired",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "seq",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "payload",
+                    "type": "GsocPartialRetirementEventPayload"
+                }
+            ]
+        },
+        {
+            "identifier": "governanceReadAddressUpdated",
+            "inputs": [
+                {
+                    "name": "governance_read_address",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "governanceReadAddressCleared",
+            "inputs": []
+        },
+        {
+            "identifier": "registryLifecycleAddressUpdated",
+            "inputs": [
+                {
+                    "name": "registry_address",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "registryLifecycleAddressCleared",
+            "inputs": []
+        },
+        {
+            "identifier": "dvcuTokenIdUpdated",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "dgscTokenIdUpdated",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "ExecutionBundleRef": {
+            "type": "struct",
+            "docs": [
+                "Execution bundle fields checked against the active IME record during issuance."
+            ],
+            "fields": [
+                {
+                    "name": "science_service_image_digest",
+                    "type": "bytes"
+                },
+                {
+                    "name": "parameter_pack_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "calibration_dataset_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "strata_protocol_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "GsocPartialRetirementEventPayload": {
+            "type": "struct",
+            "docs": [
+                "M-03 (AUD-008): non-indexed payload for the",
+                "`gsocSerialPartiallyRetired` event. Bundles the two BigUints that",
+                "event-log framing cannot carry as separate non-indexed fields",
+                "(framing allows exactly one non-indexed argument)."
+            ],
+            "fields": [
+                {
+                    "name": "amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "remaining_after",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        "GsocRetirementEventRecord": {
+            "type": "struct",
+            "docs": [
+                "M-03 (AUD-008): append-only GSOC retirement-event log entry.",
+                "",
+                "Written by `burn_and_retire_gsoc` on every partial or full",
+                "retirement. Together with `gsoc_serial_remaining` and the",
+                "pre-existing immutable `gsoc_serial_records`, this gives readers a",
+                "consistent, replay-safe view of every retirement against a serial",
+                "— replacing the previous in-place mutation of the remaining",
+                "balance (which left no audit trail and produced inconsistent",
+                "snapshots across two reads between retirements)."
+            ],
+            "fields": [
+                {
+                    "docs": [
+                        "Per-serial monotonically-increasing sequence number, starting at 0."
+                    ],
+                    "name": "seq",
+                    "type": "u64"
+                },
+                {
+                    "docs": [
+                        "Amount retired in THIS event (not cumulative)."
+                    ],
+                    "name": "amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "docs": [
+                        "Remaining balance on the serial AFTER this event is applied."
+                    ],
+                    "name": "remaining_after",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "beneficiary_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "beneficiary_address",
+                    "type": "Address"
+                },
+                {
+                    "docs": [
+                        "Block round at which this retirement was recorded."
+                    ],
+                    "name": "retired_at_round",
+                    "type": "u64"
+                }
+            ]
+        },
+        "ImeValidationRecord": {
+            "type": "struct",
+            "docs": [
+                "IME validation record used to gate dVCU issuance."
+            ],
+            "fields": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "science_service_image_digest",
+                    "type": "bytes"
+                },
+                {
+                    "name": "parameter_pack_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "calibration_dataset_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "strata_protocol_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "methodology_version",
+                    "type": "bytes"
+                },
+                {
+                    "name": "domain_codes",
+                    "type": "List<bytes>"
+                },
+                {
+                    "name": "valid_until",
+                    "type": "u64"
+                },
+                {
+                    "name": "revoked",
+                    "type": "bool"
+                }
+            ]
+        },
+        "IssuanceLotReversalRecordedPayload": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "reversed_amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "replacement_lot_id",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "RetirementRecord": {
+            "type": "struct",
+            "docs": [
+                "Retirement record for the two-phase retirement workflow."
+            ],
+            "fields": [
+                {
+                    "name": "retirement_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "lot_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "beneficiary",
+                    "type": "Address"
+                },
+                {
+                    "name": "status",
+                    "type": "bytes"
+                },
+                {
+                    "name": "initiated_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "burn_tx_hash",
+                    "type": "bytes"
+                }
+            ]
+        }
+    }
+}

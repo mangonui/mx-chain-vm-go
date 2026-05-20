@@ -1,0 +1,925 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "drwa-auth-admin",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "name": "DrwaAuthAdmin",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "quorum",
+                "type": "u32"
+            },
+            {
+                "name": "proposal_ttl_rounds",
+                "type": "u64"
+            },
+            {
+                "name": "signers",
+                "type": "variadic<Address>",
+                "multi_arg": true
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [
+            {
+                "name": "quorum",
+                "type": "u32"
+            },
+            {
+                "name": "proposal_ttl_rounds",
+                "type": "u64"
+            },
+            {
+                "name": "signers",
+                "type": "variadic<Address>",
+                "multi_arg": true
+            }
+        ],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "proposeUpdateCallerAddress",
+            "rustMethodName": "propose_update_caller_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "domain",
+                    "type": "bytes"
+                },
+                {
+                    "name": "new_address",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "proposeAddSigner",
+            "rustMethodName": "propose_add_signer",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "new_signer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "proposeRemoveSigner",
+            "rustMethodName": "propose_remove_signer",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "signer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "proposeReplaceSigner",
+            "rustMethodName": "propose_replace_signer",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "old_signer",
+                    "type": "Address"
+                },
+                {
+                    "name": "new_signer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "proposeChangeQuorum",
+            "rustMethodName": "propose_change_quorum",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "new_quorum",
+                    "type": "u32"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "sign",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "unsign",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "discardAction",
+            "rustMethodName": "discard_action",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "performAction",
+            "rustMethodName": "perform_action",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<DrwaSyncEnvelope>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getQuorum",
+            "rustMethodName": "quorum",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getProposalTtlRounds",
+            "rustMethodName": "proposal_ttl_rounds",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getNextActionId",
+            "rustMethodName": "next_action_id",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getAction",
+            "rustMethodName": "actions",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "DrwaAuthAction"
+                }
+            ]
+        },
+        {
+            "name": "getActionProposer",
+            "rustMethodName": "action_proposer",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getActionCreatedRound",
+            "rustMethodName": "action_created_round",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getActionExpiryRound",
+            "rustMethodName": "action_expiry_round",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "B-03 (AUD-003): round at which the action's approval count first",
+                "reached `quorum`. Populated by `sign` when the quorum threshold",
+                "is crossed upward; cleared by `unsign` when it drops back below.",
+                "`performAction` rejects when this is empty (quorum never reached)",
+                "or when `current_round < approved_round + timelock_rounds`.",
+                "",
+                "Encoding: the stored value is `approved_round + 1`. The `+ 1`",
+                "offset lets `SingleValueMapper::is_empty()` act as the \"not yet",
+                "approved\" sentinel even when quorum is reached at block-round 0",
+                "(which is legitimate in scenario tests; no effect in real chain",
+                "execution where block-round 0 is the genesis slot). Consumers of",
+                "this view MUST subtract 1 to recover the real approval round."
+            ],
+            "name": "getActionApprovedAtRound",
+            "rustMethodName": "action_approved_at_round",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "B-03 (AUD-003): timelock window in block rounds that must elapse",
+                "between `action_approved_at_round` and a successful",
+                "`performAction`. Set at propose time and immutable thereafter",
+                "so a later `ChangeQuorum` cannot retro-shorten pending actions."
+            ],
+            "name": "getActionTimelockRounds",
+            "rustMethodName": "action_timelock_rounds",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getAllSigners",
+            "rustMethodName": "signers",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "variadic<Address>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getActionSigners",
+            "rustMethodName": "action_signers",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<Address>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getSignerPendingActionIds",
+            "rustMethodName": "signer_pending_action_ids",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "signer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<u64>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getPerformedActionIds",
+            "rustMethodName": "performed_action_ids",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "variadic<u64>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getAuthorizedCaller",
+            "rustMethodName": "authorized_caller",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "domain",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "getAuthorizedCallerVersion",
+            "rustMethodName": "authorized_caller_version",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "domain",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "isEmergencyOverrideSupported",
+            "rustMethodName": "is_emergency_override_supported",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getEmergencyOverridePolicy",
+            "rustMethodName": "get_emergency_override_policy",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "drwaAuthActionProposed",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "proposer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "action_kind",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "proposal",
+                    "type": "DrwaAuthActionProposalEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "drwaAuthActionSigned",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "signer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "approval",
+                    "type": "DrwaAuthActionApprovalEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "drwaAuthActionUnsigned",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "signer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "approval",
+                    "type": "DrwaAuthActionApprovalEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "drwaAuthActionDiscarded",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "discarder",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "discard",
+                    "type": "DrwaAuthActionDiscardEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "drwaAuthActionPerformed",
+            "inputs": [
+                {
+                    "name": "action_id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "performer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "action_kind",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "drwaAuthorizedCallerUpdated",
+            "inputs": [
+                {
+                    "name": "domain",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "update",
+                    "type": "DrwaAuthorizedCallerUpdateEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "drwaSignerAdded",
+            "inputs": [
+                {
+                    "name": "new_signer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "signer_set",
+                    "type": "DrwaSignerSetEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "drwaSignerRemoved",
+            "inputs": [
+                {
+                    "name": "removed_signer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "signer_set",
+                    "type": "DrwaSignerSetEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "drwaSignerReplaced",
+            "inputs": [
+                {
+                    "name": "old_signer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "new_signer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "signer_set",
+                    "type": "DrwaSignerSetEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "drwaQuorumChanged",
+            "inputs": [
+                {
+                    "name": "quorum_change",
+                    "type": "DrwaQuorumChangeEvent"
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "DrwaAuthAction": {
+            "type": "enum",
+            "variants": [
+                {
+                    "name": "Nothing",
+                    "discriminant": 0
+                },
+                {
+                    "name": "UpdateCallerAddress",
+                    "discriminant": 1,
+                    "fields": [
+                        {
+                            "name": "domain",
+                            "type": "bytes"
+                        },
+                        {
+                            "name": "new_address",
+                            "type": "bytes"
+                        }
+                    ]
+                },
+                {
+                    "name": "AddSigner",
+                    "discriminant": 2,
+                    "fields": [
+                        {
+                            "name": "new_signer",
+                            "type": "Address"
+                        }
+                    ]
+                },
+                {
+                    "name": "RemoveSigner",
+                    "discriminant": 3,
+                    "fields": [
+                        {
+                            "name": "signer",
+                            "type": "Address"
+                        }
+                    ]
+                },
+                {
+                    "name": "ReplaceSigner",
+                    "discriminant": 4,
+                    "fields": [
+                        {
+                            "name": "old_signer",
+                            "type": "Address"
+                        },
+                        {
+                            "name": "new_signer",
+                            "type": "Address"
+                        }
+                    ]
+                },
+                {
+                    "name": "ChangeQuorum",
+                    "discriminant": 5,
+                    "fields": [
+                        {
+                            "name": "new_quorum",
+                            "type": "u32"
+                        }
+                    ]
+                }
+            ]
+        },
+        "DrwaAuthActionApprovalEvent": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "approvals",
+                    "type": "u32"
+                },
+                {
+                    "name": "quorum",
+                    "type": "u32"
+                }
+            ]
+        },
+        "DrwaAuthActionDiscardEvent": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "discarded_round",
+                    "type": "u64"
+                }
+            ]
+        },
+        "DrwaAuthActionProposalEvent": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "created_round",
+                    "type": "u64"
+                },
+                {
+                    "name": "expiry_round",
+                    "type": "u64"
+                },
+                {
+                    "name": "timelock_rounds",
+                    "type": "u64"
+                }
+            ]
+        },
+        "DrwaAuthorizedCallerUpdateEvent": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "new_address",
+                    "type": "bytes"
+                },
+                {
+                    "name": "version",
+                    "type": "u64"
+                }
+            ]
+        },
+        "DrwaCallerDomain": {
+            "type": "enum",
+            "docs": [
+                "Identifies the contract domain that produced a sync envelope."
+            ],
+            "variants": [
+                {
+                    "name": "PolicyRegistry",
+                    "discriminant": 0
+                },
+                {
+                    "name": "AssetManager",
+                    "discriminant": 1
+                },
+                {
+                    "name": "IdentityRegistry",
+                    "discriminant": 2
+                },
+                {
+                    "name": "Attestation",
+                    "discriminant": 3
+                },
+                {
+                    "name": "RecoveryAdmin",
+                    "discriminant": 4
+                },
+                {
+                    "name": "AuthAdmin",
+                    "discriminant": 5
+                }
+            ]
+        },
+        "DrwaQuorumChangeEvent": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "previous_quorum",
+                    "type": "u32"
+                },
+                {
+                    "name": "new_quorum",
+                    "type": "u32"
+                },
+                {
+                    "name": "signer_count",
+                    "type": "u32"
+                }
+            ]
+        },
+        "DrwaSignerSetEvent": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "signer_count",
+                    "type": "u32"
+                },
+                {
+                    "name": "quorum",
+                    "type": "u32"
+                }
+            ]
+        },
+        "DrwaSyncEnvelope": {
+            "type": "struct",
+            "docs": [
+                "Wraps the caller domain, payload hash, and batched operations for mirror sync."
+            ],
+            "fields": [
+                {
+                    "name": "schema_version",
+                    "type": "u16"
+                },
+                {
+                    "name": "caller_domain",
+                    "type": "DrwaCallerDomain"
+                },
+                {
+                    "name": "payload_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "operations",
+                    "type": "List<DrwaSyncOperation>"
+                },
+                {
+                    "name": "pre_recovery_state_hash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "recovery_scope",
+                    "type": "List<bytes>"
+                }
+            ]
+        },
+        "DrwaSyncOperation": {
+            "type": "struct",
+            "docs": [
+                "Carries a single versioned sync operation inside an envelope."
+            ],
+            "fields": [
+                {
+                    "name": "operation_type",
+                    "type": "DrwaSyncOperationType"
+                },
+                {
+                    "name": "token_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "holder",
+                    "type": "Address"
+                },
+                {
+                    "name": "version",
+                    "type": "u64"
+                },
+                {
+                    "name": "body",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "DrwaSyncOperationType": {
+            "type": "enum",
+            "docs": [
+                "Enumerates the sync operation payloads accepted by the native DRWA mirror."
+            ],
+            "variants": [
+                {
+                    "name": "TokenPolicy",
+                    "discriminant": 0
+                },
+                {
+                    "name": "AssetRecord",
+                    "discriminant": 1
+                },
+                {
+                    "name": "HolderMirror",
+                    "discriminant": 2
+                },
+                {
+                    "name": "HolderProfile",
+                    "discriminant": 3
+                },
+                {
+                    "name": "HolderAuditorAuthorization",
+                    "discriminant": 4
+                },
+                {
+                    "name": "HolderMirrorDelete",
+                    "discriminant": 5
+                },
+                {
+                    "name": "AuthorizedCallerUpdate",
+                    "discriminant": 6
+                },
+                {
+                    "name": "GovernanceApprove",
+                    "discriminant": 7
+                },
+                {
+                    "name": "GovernanceExecute",
+                    "discriminant": 8
+                }
+            ]
+        }
+    }
+}

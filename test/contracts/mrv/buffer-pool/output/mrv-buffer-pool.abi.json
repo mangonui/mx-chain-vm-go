@@ -1,0 +1,546 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-buffer-pool",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Non-permanence buffer pool contract.",
+        "",
+        "Tracks per-project buffer deposits, cancellations, and replenishments.",
+        "Replenishments above a 10% threshold or on fully depleted projects",
+        "require governance approval and are rate-limited."
+    ],
+    "name": "BufferPool",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "governance",
+                "type": "Address"
+            },
+            {
+                "name": "carbon_credit_addr",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "setGovernanceReadAddress",
+            "rustMethodName": "set_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearGovernanceReadAddress",
+            "rustMethodName": "clear_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Updates the authorized carbon-credit contract address."
+            ],
+            "name": "setCarbonCreditAddr",
+            "rustMethodName": "set_carbon_credit_addr",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Configures the canonical reserve token identifier controlled by this",
+                "buffer-pool contract."
+            ],
+            "name": "setBufferTokenId",
+            "rustMethodName": "set_buffer_token_id",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Records a buffer contribution for a project and monitoring period.",
+                "",
+                "Callable only by an authorized contract or governance actor."
+            ],
+            "name": "depositBufferCredits",
+            "rustMethodName": "deposit_buffer_credits",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "monitoring_period_n",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Cancels previously deposited buffer credits for a project.",
+                "",
+                "This updates accounting only and does not transfer funds."
+            ],
+            "name": "cancelBufferCredits",
+            "rustMethodName": "cancel_buffer_credits",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "reversal_amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "reason_cid",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Replenishes a project's buffer balance.",
+                "",
+                "Amounts above the configured threshold require governance, and",
+                "replenishments are rate-limited per project."
+            ],
+            "name": "replenishBufferCredits",
+            "rustMethodName": "replenish_buffer_credits",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "amount_scaled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "justification_cid",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getBufferRecord",
+            "rustMethodName": "get_buffer_record",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<BufferRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getTotalPoolBalance",
+            "rustMethodName": "get_total_pool_balance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getGovernanceReadAddress",
+            "rustMethodName": "governance_read_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Canonical reserve token identifier (`dVCU-BUF` in the adopted model)."
+            ],
+            "name": "getBufferTokenId",
+            "rustMethodName": "buffer_token_id",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "TokenIdentifier"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Monotonic reserve-token minted supply counter."
+            ],
+            "name": "getTotalBufferMinted",
+            "rustMethodName": "total_buffer_minted",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Monotonic reserve-token burned supply counter."
+            ],
+            "name": "getTotalBufferBurned",
+            "rustMethodName": "total_buffer_burned",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Adds an address to the authorized caller whitelist."
+            ],
+            "name": "addAuthorizedCaller",
+            "rustMethodName": "add_authorized_caller",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "caller",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Removes an address from the authorized caller whitelist."
+            ],
+            "name": "removeAuthorizedCaller",
+            "rustMethodName": "remove_authorized_caller",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "caller",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isAuthorizedCaller",
+            "rustMethodName": "is_authorized_caller",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "caller",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes the initial governance address during bootstrap, or rotates",
+                "governance when called by the currently active governance address."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Cancels bootstrap-time pending governance only while no active",
+                "governance has yet been accepted. Once governance is active, control is",
+                "irreversible and cannot be revoked back to owner-only."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        }
+    ],
+    "events": [
+        {
+            "identifier": "bufferDeposited",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "bufferCancelled",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "reason_cid",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "bufferReplenished",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "bufferReplenishmentGovernanceRequired",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "authorizedCallerAdded",
+            "inputs": [
+                {
+                    "name": "caller",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "authorizedCallerRemoved",
+            "inputs": [
+                {
+                    "name": "caller",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "governanceReadAddressUpdated",
+            "inputs": [
+                {
+                    "name": "governance_read_address",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "governanceReadAddressCleared",
+            "inputs": []
+        },
+        {
+            "identifier": "carbonCreditAddrUpdated",
+            "inputs": [
+                {
+                    "name": "carbon_credit_addr",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "bufferTokenIdUpdated",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "BufferRecord": {
+            "type": "struct",
+            "docs": [
+                "Per-project buffer balance tracking deposits, cancellations, and replenishments."
+            ],
+            "fields": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "total_deposited",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "total_cancelled",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "total_replenished",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "last_replenishment_epoch",
+                    "type": "u64"
+                }
+            ]
+        }
+    }
+}

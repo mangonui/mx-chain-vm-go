@@ -1,0 +1,560 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-gsoc-registry",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "GSOC ITMO serial registry contract.",
+        "",
+        "Manages the full lifecycle of ITMO serials: reservation, batch",
+        "registration, and retirement with beneficiary tracking."
+    ],
+    "name": "GsocRegistry",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "governance",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "setGovernanceReadAddress",
+            "rustMethodName": "set_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearGovernanceReadAddress",
+            "rustMethodName": "clear_governance_read_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Reserves an ITMO serial before off-chain persistence and final registration."
+            ],
+            "name": "reserveSerial",
+            "rustMethodName": "reserve_serial",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Finalizes registration for a serial that has already been reserved."
+            ],
+            "name": "registerSerialBatch",
+            "rustMethodName": "register_serial_batch",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                },
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "vintage_year",
+                    "type": "u32"
+                },
+                {
+                    "name": "serial_start",
+                    "type": "bytes"
+                },
+                {
+                    "name": "serial_end",
+                    "type": "bytes"
+                },
+                {
+                    "name": "quantity",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Cancels a reserved serial that has not been finalized."
+            ],
+            "name": "cancelReservation",
+            "rustMethodName": "cancel_reservation",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Marks a registered serial as retired and records beneficiary details."
+            ],
+            "name": "recordRetirement",
+            "rustMethodName": "record_retirement",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                },
+                {
+                    "name": "beneficiary_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "beneficiary_address",
+                    "type": "Address"
+                },
+                {
+                    "name": "burn_tx_hash",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getSerialRecord",
+            "rustMethodName": "get_serial_record",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<GsocSerialBatchRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getTotalSupply",
+            "rustMethodName": "get_total_supply",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getTotalRetired",
+            "rustMethodName": "get_total_retired",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "isSerialRetired",
+            "rustMethodName": "is_serial_retired",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getRetirementRecord",
+            "rustMethodName": "get_retirement_record",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<GsocRetirementRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getProjectSerialCount",
+            "rustMethodName": "get_project_serials",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "isSerialReserved",
+            "rustMethodName": "is_serial_reserved",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getGovernanceReadAddress",
+            "rustMethodName": "governance_read_address",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Registers a verifier address."
+            ],
+            "name": "addVerifier",
+            "rustMethodName": "add_verifier",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Removes a verifier address. Governance-only to mitigate",
+                "single-key-compromise risk."
+            ],
+            "name": "removeVerifier",
+            "rustMethodName": "remove_verifier",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isVerifier",
+            "rustMethodName": "is_verifier",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Proposes the initial governance address during bootstrap, or rotates",
+                "governance when called by the currently active governance address."
+            ],
+            "name": "setGovernance",
+            "rustMethodName": "set_governance",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Accepts a pending governance transfer before the acceptance window expires."
+            ],
+            "name": "acceptGovernance",
+            "rustMethodName": "accept_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "getGovernance",
+            "rustMethodName": "governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getPendingGovernance",
+            "rustMethodName": "pending_governance",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Cancels bootstrap-time pending governance only while no active",
+                "governance has yet been accepted. Once governance is active, control is",
+                "irreversible and cannot be revoked back to owner-only."
+            ],
+            "name": "revokeGovernance",
+            "rustMethodName": "revoke_governance",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        }
+    ],
+    "events": [
+        {
+            "identifier": "serialReserved",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "serialReservationCancelled",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "serialBatchRegistered",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "project_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "quantity",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "identifier": "serialRetired",
+            "inputs": [
+                {
+                    "name": "itmo_serial",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "beneficiary_name",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "verifierAdded",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "verifierRemoved",
+            "inputs": [
+                {
+                    "name": "verifier",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceProposed",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceAccepted",
+            "inputs": [
+                {
+                    "name": "governance",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "mrvGovernanceRevoked",
+            "inputs": [
+                {
+                    "name": "previous",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "GsocRetirementRecord": {
+            "type": "struct",
+            "docs": [
+                "Retirement record for a specific serial range."
+            ],
+            "fields": [
+                {
+                    "name": "serial",
+                    "type": "bytes"
+                },
+                {
+                    "name": "beneficiary_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "beneficiary_address",
+                    "type": "Address"
+                },
+                {
+                    "name": "retired_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "burn_tx_hash",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "GsocSerialBatchRecord": {
+            "type": "struct",
+            "docs": [
+                "Serial record stored after successful batch registration."
+            ],
+            "fields": [
+                {
+                    "name": "project_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "vintage_year",
+                    "type": "u32"
+                },
+                {
+                    "name": "serial_start",
+                    "type": "bytes"
+                },
+                {
+                    "name": "serial_end",
+                    "type": "bytes"
+                },
+                {
+                    "name": "quantity",
+                    "type": "u64"
+                },
+                {
+                    "name": "registered_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "retired",
+                    "type": "bool"
+                }
+            ]
+        }
+    }
+}

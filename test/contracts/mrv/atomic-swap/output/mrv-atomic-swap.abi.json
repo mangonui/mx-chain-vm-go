@@ -1,0 +1,420 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-atomic-swap",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-8-g36d418071"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Escrow-based RFQ settlement contract for COME-funded atomic swaps.",
+        "",
+        "Buyer deposits COME margin, dealer delivers RWA tokens, and margin is",
+        "released on settlement or returned to buyer on expiry or cancellation."
+    ],
+    "name": "AtomicSwap",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "come_token_id",
+                "type": "TokenIdentifier"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "setGovernanceReadAddress",
+            "rustMethodName": "set_governance_read_address",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "clearGovernanceReadAddress",
+            "rustMethodName": "clear_governance_read_address",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "allowAssetToken",
+            "rustMethodName": "allow_asset_token",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeAssetToken",
+            "rustMethodName": "remove_asset_token",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Creates an RFQ record in `pending_deposit` state."
+            ],
+            "name": "createRfq",
+            "rustMethodName": "create_rfq",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "buyer",
+                    "type": "Address"
+                },
+                {
+                    "name": "dealer",
+                    "type": "Address"
+                },
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "name": "quantity",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "margin_amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "price_come_per_unit",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "expiry_epoch",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Deposits the buyer's COME margin into escrow."
+            ],
+            "name": "depositMargin",
+            "rustMethodName": "deposit_margin",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Settles the RFQ: dealer delivers RWA tokens, escrowed margin releases to dealer."
+            ],
+            "name": "settle",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Returns escrowed margin to the buyer after expiry. Callable by anyone."
+            ],
+            "name": "autoReclaim",
+            "rustMethodName": "auto_reclaim",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Cancels a deposited RFQ and returns margin to the buyer.",
+                "Only the buyer may cancel because cancellation refunds the buyer's escrow."
+            ],
+            "name": "cancelRfq",
+            "rustMethodName": "cancel_rfq",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getRfq",
+            "rustMethodName": "get_rfq",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<EscrowedRfqRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getLockedBalance",
+            "rustMethodName": "get_locked_balance",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "holder",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "isAssetTokenAllowed",
+            "rustMethodName": "is_asset_token_allowed",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "assetTokenAllowed",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "assetTokenRemoved",
+            "inputs": [
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "rfqCreated",
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "marginDeposited",
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "rfqSettled",
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "buyer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "dealer",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Emitted when a settlement fails due to escrow or transfer issues.",
+                "Off-chain consumers should monitor this event for operational alerting."
+            ],
+            "identifier": "settlementFailed",
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "buyer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "dealer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "reason",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "identifier": "marginReturned",
+            "inputs": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "recipient",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "EscrowedRfqRecord": {
+            "type": "struct",
+            "docs": [
+                "Escrowed RFQ lifecycle record tracking margin deposit, settlement, and expiry."
+            ],
+            "fields": [
+                {
+                    "name": "rfq_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "buyer",
+                    "type": "Address"
+                },
+                {
+                    "name": "dealer",
+                    "type": "Address"
+                },
+                {
+                    "name": "token_id",
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "name": "quantity",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "margin_amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "price_come_per_unit",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "funded_epoch",
+                    "type": "u64"
+                },
+                {
+                    "name": "expiry_epoch",
+                    "type": "u64"
+                },
+                {
+                    "name": "status",
+                    "type": "u8"
+                }
+            ]
+        }
+    }
+}

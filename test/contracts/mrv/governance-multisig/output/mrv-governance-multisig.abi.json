@@ -1,0 +1,449 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "mrv-governance-multisig",
+            "version": "0.0.0",
+            "gitVersion": "v0.65.1-9-g091d120c5"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.65.1"
+        }
+    },
+    "docs": [
+        "Operational multisig contract for Dugong-side decision recording and",
+        "dispute voting.",
+        "",
+        "This contract is intentionally not the chain-authoritative governance",
+        "holder for `mrv-registry` or `mrv-gsoc-registry`. It records signer-approved",
+        "operational decisions and dispute outcomes on-chain, while canonical MRV",
+        "governance for privileged registry mutations is handled by the separate",
+        "`mrv-governance` contract."
+    ],
+    "name": "GovernanceMultisig",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "threshold",
+                "type": "u32"
+            },
+            {
+                "name": "initial_signers",
+                "type": "variadic<Address>",
+                "multi_arg": true
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "docs": [
+            "Upgrades storage layout version if needed and preserves existing state."
+        ],
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "docs": [
+                "Adds a governance signer."
+            ],
+            "name": "addSigner",
+            "rustMethodName": "add_signer",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "signer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Removes a governance signer. Fails if the signer count would drop below threshold."
+            ],
+            "name": "removeSigner",
+            "rustMethodName": "remove_signer",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "signer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Creates a governance proposal of type `force_revert`,",
+                "`issuance_reversal`, `verifier_adjustment`, `freeze`, or `unfreeze`."
+            ],
+            "name": "proposeAction",
+            "rustMethodName": "propose_action",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "proposal_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "target_address",
+                    "type": "Address"
+                },
+                {
+                    "name": "action_data",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Records the caller's approval for a pending proposal."
+            ],
+            "name": "approveProposal",
+            "rustMethodName": "approve_proposal",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Marks a proposal as executed once it has reached the approval threshold",
+                "and has not expired.",
+                "",
+                "This endpoint records the approved operational decision on-chain and",
+                "emits the execution event. It does not dispatch a downstream cross-",
+                "contract call."
+            ],
+            "name": "executeProposal",
+            "rustMethodName": "execute_proposal",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Submits a dispute requesting `FREEZE`, `CLAW_BACK`, or `WARN`."
+            ],
+            "name": "submitDispute",
+            "rustMethodName": "submit_dispute",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "dispute_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "rfq_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "accused",
+                    "type": "Address"
+                },
+                {
+                    "name": "evidence_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "requested_action",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Casts an approval or rejection vote on a dispute and resolves it once a",
+                "two-thirds supermajority is reached."
+            ],
+            "name": "voteOnDispute",
+            "rustMethodName": "vote_on_dispute",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "dispute_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "approve",
+                    "type": "bool"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getProposal",
+            "rustMethodName": "get_proposal",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<GovProposal>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getDispute",
+            "rustMethodName": "get_dispute",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "dispute_id",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<DisputeRecord>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "isSigner",
+            "rustMethodName": "is_signer",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "addr",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Storage layout version for forward-compatible upgrades."
+            ],
+            "name": "getStorageVersion",
+            "rustMethodName": "storage_version",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "signerAdded",
+            "inputs": [
+                {
+                    "name": "signer",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "signerRemoved",
+            "inputs": [
+                {
+                    "name": "signer",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "proposalCreated",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "proposalApproved",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "signer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "approval_count",
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "identifier": "proposalExecuted",
+            "inputs": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "disputeSubmitted",
+            "inputs": [
+                {
+                    "name": "dispute_id",
+                    "type": "bytes",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "disputeVoted",
+            "inputs": [
+                {
+                    "name": "dispute_id",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "voter",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "approve",
+                    "type": "bool"
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "DisputeRecord": {
+            "type": "struct",
+            "docs": [
+                "Dispute record with vote tallies, requested action, and resolution state."
+            ],
+            "fields": [
+                {
+                    "name": "dispute_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "rfq_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "accused",
+                    "type": "Address"
+                },
+                {
+                    "name": "evidence_cid",
+                    "type": "bytes"
+                },
+                {
+                    "name": "requested_action",
+                    "type": "bytes"
+                },
+                {
+                    "name": "vote_approve",
+                    "type": "u32"
+                },
+                {
+                    "name": "vote_reject",
+                    "type": "u32"
+                },
+                {
+                    "name": "resolved",
+                    "type": "bool"
+                },
+                {
+                    "name": "action_taken",
+                    "type": "bytes"
+                },
+                {
+                    "name": "decided_at",
+                    "type": "u64"
+                },
+                {
+                    "docs": [
+                        "Signer count captured at creation time for stable dispute quorum checks."
+                    ],
+                    "name": "total_signers_at_creation",
+                    "type": "u32"
+                },
+                {
+                    "docs": [
+                        "Creation timestamp used to enforce dispute voting expiry."
+                    ],
+                    "name": "created_at",
+                    "type": "u64"
+                }
+            ]
+        },
+        "GovProposal": {
+            "type": "struct",
+            "docs": [
+                "Generic governance proposal with typed action metadata."
+            ],
+            "fields": [
+                {
+                    "name": "proposal_id",
+                    "type": "bytes"
+                },
+                {
+                    "name": "proposer",
+                    "type": "Address"
+                },
+                {
+                    "name": "proposal_type",
+                    "type": "bytes"
+                },
+                {
+                    "name": "target_address",
+                    "type": "Address"
+                },
+                {
+                    "name": "action_data",
+                    "type": "bytes"
+                },
+                {
+                    "name": "executed",
+                    "type": "bool"
+                },
+                {
+                    "name": "created_at",
+                    "type": "u64"
+                }
+            ]
+        }
+    }
+}
