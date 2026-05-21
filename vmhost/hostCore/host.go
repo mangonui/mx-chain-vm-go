@@ -5,6 +5,7 @@ import (
 	"math"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -416,6 +417,7 @@ func (host *vmHost) RunSmartContractCreate(input *vmcommon.ContractCreateInput) 
 		"gasLocked", input.GasLocked)
 
 	done := make(chan struct{})
+	var timedOut atomic.Bool
 	go func() {
 		defer func() {
 			r := recover()
@@ -432,6 +434,9 @@ func (host *vmHost) RunSmartContractCreate(input *vmcommon.ContractCreateInput) 
 
 		host.InitState()
 		vmOutput = host.doRunSmartContractCreate(input)
+		if timedOut.Load() {
+			host.Runtime().FailExecution(vmhost.ErrExecutionFailedWithTimeout)
+		}
 		host.CompleteLogEntriesWithCallType(vmOutput, vmhost.DeploySmartContractString)
 
 		logsFromErrors := host.createLogEntryFromErrors(input.CallerAddr, input.CallerAddr, "_init")
@@ -450,7 +455,8 @@ func (host *vmHost) RunSmartContractCreate(input *vmcommon.ContractCreateInput) 
 	case <-done:
 		return
 	case <-ctx.Done():
-		host.Runtime().FailExecution(vmhost.ErrExecutionFailedWithTimeout)
+		timedOut.Store(true)
+		host.signalExecutionTimeout()
 		<-done
 		err = vmhost.ErrExecutionFailedWithTimeout
 	}
@@ -482,6 +488,7 @@ func (host *vmHost) RunSmartContractCall(input *vmcommon.ContractCallInput) (vmO
 		"gasLocked", input.GasLocked)
 
 	done := make(chan struct{})
+	var timedOut atomic.Bool
 	go func() {
 		defer func() {
 			r := recover()
@@ -504,6 +511,10 @@ func (host *vmHost) RunSmartContractCall(input *vmcommon.ContractCallInput) (vmO
 			vmOutput = host.doRunSmartContractDelete(input)
 		default:
 			vmOutput = host.doRunSmartContractCall(input)
+		}
+
+		if timedOut.Load() {
+			host.Runtime().FailExecution(vmhost.ErrExecutionFailedWithTimeout)
 		}
 
 		logsFromErrors := host.createLogEntryFromErrors(input.CallerAddr, input.RecipientAddr, input.Function)
@@ -529,12 +540,22 @@ func (host *vmHost) RunSmartContractCall(input *vmcommon.ContractCallInput) (vmO
 		// basic block in order to close the WASM instance cleanly. This is done by
 		// reading the `done` channel once more, awaiting the call to `close(done)`
 		// from above.
-		host.Runtime().FailExecution(vmhost.ErrExecutionFailedWithTimeout)
+		timedOut.Store(true)
+		host.signalExecutionTimeout()
 		<-done
 		err = vmhost.ErrExecutionFailedWithTimeout
 	}
 
 	return
+}
+
+func (host *vmHost) signalExecutionTimeout() {
+	instance := host.Runtime().GetInstance()
+	if check.IfNil(instance) {
+		return
+	}
+
+	instance.SetBreakpointValue(uint64(vmhost.BreakpointExecutionFailed))
 }
 
 func (host *vmHost) createLogEntryFromErrors(sndAddress, rcvAddress []byte, function string) *vmcommon.LogEntry {

@@ -2727,7 +2727,7 @@ func (context *VMHooksImpl) WriteLog(
 	gasToUse := metering.GasSchedule().BaseOpsAPICost.Log
 	gas := math.MulUint64(
 		metering.GasSchedule().BaseOperationCost.PersistPerByte,
-		uint64(numTopics)*uint64(vmhost.HashLen)+uint64(dataLength),
+		uint64(numTopics)*vmhost.HashLen+uint64(dataLength),
 	)
 	gasToUse = math.AddUint64(gasToUse, gas)
 
@@ -2744,8 +2744,9 @@ func (context *VMHooksImpl) WriteLog(
 	}
 
 	topics := make([][]byte, numTopics)
+	hashLen := executor.MemLength(vmhost.HashLen)
 	for i := int32(0); i < numTopics; i++ {
-		topics[i], err = context.MemLoad(topicPtr.Offset(i*vmhost.HashLen), vmhost.HashLen)
+		topics[i], err = context.MemLoad(topicPtr.Offset(i*hashLen), hashLen)
 		if err != nil {
 			context.FailExecution(err)
 			return

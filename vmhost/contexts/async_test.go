@@ -89,7 +89,7 @@ func initializeVMAndWasmerAsyncContextWithBuiltIn(tb testing.TB, isBuiltinFunc b
 	)
 	require.Nil(tb, err)
 
-	runtimeCtx.iTracker.instance = mockWasmerInstance
+	runtimeCtx.iTracker.ReplaceInstance(mockWasmerInstance)
 	host.RuntimeContext = runtimeCtx
 
 	storageCtx, err := NewStorageContext(host, world, reservedTestPrefix)

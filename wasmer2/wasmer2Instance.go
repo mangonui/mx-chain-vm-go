@@ -332,8 +332,9 @@ func (instance *Wasmer2Instance) IsInterfaceNil() bool {
 //
 // ISSUE-083: the wasmer2 architecture stores the vmHooks pointer at the
 // EXECUTOR level (set via cWasmerExecutorContextDataSet in bridge2.go),
-// not per-instance. The legacy VMs (v1_2, v1_3, v1_4) have non-trivial
-// per-instance implementations because their architecture differs.
+// not per-instance. Active wrappers and mocks keep these methods on the
+// shared executor.Instance interface for compatibility, but wasmer2 instances
+// themselves do not own this pointer.
 //
 // This method exists only to satisfy the executor.Instance interface.
 // Callers that need to actually set the vmHooks pointer must operate on

@@ -241,10 +241,6 @@ func cWasmerInstanceReset(instance *cWasmerInstanceT) cWasmerResultT {
 	))
 }
 
-func cWasmerLastErrorLength() cInt {
-	return (cInt)(C.vm_exec_last_error_length())
-}
-
 func cWasmerLastErrorMessage(buffer *cChar, length cInt) cInt {
 	return (cInt)(C.vm_exec_last_error_message(
 		(*C.char)(buffer),

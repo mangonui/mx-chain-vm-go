@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	mock "github.com/multiversx/mx-chain-vm-go/mock/context"
 	test "github.com/multiversx/mx-chain-vm-go/testcommon"
 	"github.com/multiversx/mx-chain-vm-go/vmhost"
@@ -122,8 +123,10 @@ func TestExecution_PanicInGoWithSilentWasmer_Timeout(t *testing.T) {
 		require.Nil(t, r)
 	}()
 
-	_, err := host.RunSmartContractCall(input)
+	vmOutput, err := host.RunSmartContractCall(input)
 	require.Equal(t, err, vmhost.ErrExecutionFailedWithTimeout)
+	require.NotNil(t, vmOutput)
+	require.Equal(t, vmcommon.ExecutionFailed, vmOutput.ReturnCode)
 }
 
 func TestExecution_PanicInGoWithSilentWasmer_TimeoutAndSIGSEGV(t *testing.T) {

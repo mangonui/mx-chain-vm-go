@@ -14,24 +14,25 @@ var ErrInvalidBytecode = errors.New("invalid bytecode")
 
 var ErrCachingFailed = errors.New("instance caching failed")
 
+const maxLastErrorMessageLength = 64 * 1024
+
 // GetLastError returns the last error message if any, otherwise returns an error.
 func GetLastError() (string, error) {
-	var errorLength = cWasmerLastErrorLength()
-
-	if errorLength == 0 {
-		return "", nil
-	}
-
-	var errorMessage = make([]cChar, errorLength)
+	var errorMessage = make([]cChar, maxLastErrorMessageLength)
 	var errorMessagePointer = (*cChar)(unsafe.Pointer(&errorMessage[0]))
 
-	var errorResult = cWasmerLastErrorMessage(errorMessagePointer, errorLength)
+	var errorResult = cWasmerLastErrorMessage(errorMessagePointer, maxLastErrorMessageLength)
 
 	if errorResult == -1 {
 		return "", errors.New("cannot read last error")
 	}
 
-	return cGoString(errorMessagePointer), nil
+	lastError := cGoString(errorMessagePointer)
+	if lastError == "" {
+		return "", nil
+	}
+
+	return lastError, nil
 }
 
 func newWrappedError(target error) error {

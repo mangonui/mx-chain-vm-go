@@ -10,7 +10,10 @@ type seedRandReader struct {
 	rand *rand.Rand
 }
 
-// NewSeedRandReader creates and returns a new SeedRandReader
+// NewSeedRandReader creates a deterministic PRNG seeded from seed.
+// It intentionally uses math/rand, not crypto/rand: VM execution must be
+// reproducible across validators, so RNG output must be a pure function of
+// chain-provided seed material.
 func NewSeedRandReader(seed []byte) *seedRandReader {
 	seedHash := sha256.Sum256(seed)
 	seedNumber := binary.BigEndian.Uint64(seedHash[:])

@@ -92,6 +92,11 @@ func TestWriteLog_NumTopicsHashLenInt32OverflowDocumented(t *testing.T) {
 	require.Equal(t, uint64(34_359_738_368), safeUint64,
 		"post-fix uint64 multiplication MUST equal 2^35 = 34359738368 for numTopics=2^30 — if this fails, the fix is broken")
 
+	var _ uint64 = vmhost.HashLen
+	sizeBytes := uint64(numTopics) * vmhost.HashLen
+	require.Equal(t, uint64(34_359_738_368), sizeBytes,
+		"typed vmhost.HashLen multiplication must not silently wrap on int32 overflow")
+
 	// Sanity: the wrapped int32 does NOT equal the correct value.
 	require.NotEqual(t, uint64(wrappedInt32), safeUint64,
 		"wrapped int32 result and correct uint64 result must differ — otherwise there is no overflow to fix")

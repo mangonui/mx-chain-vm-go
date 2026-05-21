@@ -165,8 +165,8 @@ const (
 	// AddressLen specifies the length of the address
 	AddressLen = 32
 
-	// HashLen specifies the lenghth of a hash
-	HashLen = 32
+	// HashLen specifies the length of a hash
+	HashLen uint64 = 32
 
 	// BalanceLen specifies the number of bytes on which the balance is stored
 	BalanceLen = 32

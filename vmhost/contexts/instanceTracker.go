@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -39,12 +40,17 @@ type instanceTracker struct {
 	numRunningInstances int
 	warmInstanceCache   Cacher
 	instance            executor.Instance
+	activeInstance      atomic.Pointer[activeInstanceRef]
 	cacheLevel          instanceCacheLevel
 	instanceStack       []executor.Instance
 	codeHashStack       [][]byte
 	codeSizeStack       []uint64
 
 	instances map[string]executor.Instance
+}
+
+type activeInstanceRef struct {
+	instance executor.Instance
 }
 
 // NewInstanceTracker creates a new instanceTracker instance
@@ -70,6 +76,7 @@ func NewInstanceTracker() (*instanceTracker, error) {
 // InitState initializes the internal instanceTracker state
 func (tracker *instanceTracker) InitState() {
 	tracker.instance = nil
+	tracker.activeInstance.Store(nil)
 	tracker.codeHash = make([]byte, 0)
 	tracker.instances = make(map[string]executor.Instance)
 	tracker.codeSize = 0
@@ -138,7 +145,12 @@ func (tracker *instanceTracker) StackSize() uint64 {
 
 // Instance returns the active instance
 func (tracker *instanceTracker) Instance() executor.Instance {
-	return tracker.instance
+	activeInstance := tracker.activeInstance.Load()
+	if activeInstance == nil {
+		return nil
+	}
+
+	return activeInstance.instance
 }
 
 // GetWarmInstance retrieves a warm instance from the internal cache
@@ -310,6 +322,7 @@ func (tracker *instanceTracker) ReplaceInstance(instance executor.Instance) {
 		"prev id", previousInstanceID,
 		"new id", instance.ID())
 	tracker.instance = instance
+	tracker.activeInstance.Store(&activeInstanceRef{instance: instance})
 }
 
 // UnsetInstance replaces the currently active instance with nil
@@ -323,6 +336,7 @@ func (tracker *instanceTracker) UnsetInstance() {
 		"id", tracker.instance.ID(),
 		"codeHash", tracker.codeHash)
 	tracker.instance = nil
+	tracker.activeInstance.Store(nil)
 	tracker.codeHash = nil
 }
 
