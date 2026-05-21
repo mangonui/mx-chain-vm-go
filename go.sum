@@ -81,12 +81,12 @@ github.com/mangonui/mx-chain-crypto-go v0.0.0-20260521050229-0071ade87e85 h1:itj
 github.com/mangonui/mx-chain-crypto-go v0.0.0-20260521050229-0071ade87e85/go.mod h1:6m5c4RkWsWYBTBShDIZxfl4z0BEuogLlJnv7IjAqibE=
 github.com/mangonui/mx-chain-logger-go v0.0.0-20260514040119-0a9c9ca2e4eb h1:FzR5XJdtQHB3ftLtJ3wo50SR7HqkfHwvK9/1aX97q/M=
 github.com/mangonui/mx-chain-logger-go v0.0.0-20260514040119-0a9c9ca2e4eb/go.mod h1:zgnhQMWFDkMuT3wlUQDI7Q8K/Pa6mMeRFgtaD5Pn4u0=
-github.com/mangonui/mx-chain-scenario-go v0.0.0-20260520094333-f2be87c9c9ce h1:1qOlauWuI0vQzRCZe1WiukVpDX4ftIrvRaXJusNO2R4=
-github.com/mangonui/mx-chain-scenario-go v0.0.0-20260520094333-f2be87c9c9ce/go.mod h1:evoO6OSEm8ueAxpl7uyTNMXFsZEHLXWqm8Bucxn5S5Q=
+github.com/mangonui/mx-chain-scenario-go v0.0.0-20260521073255-89bc1d0b5adf h1:NrNzHmKrhpg9iDbpdYOUzp8Pe+zyPIq2vvo5X6sP8Vw=
+github.com/mangonui/mx-chain-scenario-go v0.0.0-20260521073255-89bc1d0b5adf/go.mod h1:zeu0LbLYoezlY18PNMcHX7HMA2m4Z/hgqf0QHvPgLLE=
 github.com/mangonui/mx-chain-storage-go v0.0.0-20260514040357-ab466093f27c h1:slfWRCa15u5p4hG2/s58mWf+Ot70uoULBWkA9SMLtLk=
 github.com/mangonui/mx-chain-storage-go v0.0.0-20260514040357-ab466093f27c/go.mod h1:rNbhMi8AMn8bS7P3tn4NsFksuGoRCFI1FORGi+NcM08=
-github.com/mangonui/mx-chain-vm-common-go v0.0.0-20260512042020-b605c960cbd0 h1:BLvHryA3L5eyNTuz/TPXnu8VKz0adscS+iuys6aYzoI=
-github.com/mangonui/mx-chain-vm-common-go v0.0.0-20260512042020-b605c960cbd0/go.mod h1:SWI+D+0RcLNwTy8a2ixJGz8dZP3/Dff+0ism9hJonX8=
+github.com/mangonui/mx-chain-vm-common-go v0.0.0-20260521073214-bfcbe2da66a4 h1:bQzSSxkpYCkWrlk5HNqpuLybT+KZKplg3aLW7G7CdlQ=
+github.com/mangonui/mx-chain-vm-common-go v0.0.0-20260521073214-bfcbe2da66a4/go.mod h1:2P/hQwrFVC0WvLuC3JiO6dcIbVb2zEzwA0HejiIntn8=
 github.com/mangonui/mx-components-big-int v0.0.0-20260507133911-536f4799b94f h1:CDPNmCJzuznxZd0cPOLOeHvEoQ5X3uDTkJ4OHJ100hA=
 github.com/mangonui/mx-components-big-int v0.0.0-20260507133911-536f4799b94f/go.mod h1:kcWw7hDe6cSz1wcBAqj/6sFH6ouSPsNeH9P7XlpZRcw=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
